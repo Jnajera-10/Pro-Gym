@@ -1,0 +1,40 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Movimientos de Stock - PRO-GYM{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-exchange-alt me-2"></i>Movimientos de Stock</h4>
+    <a href="{{ url_for('inventory.index') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Inventario
+    </a>
+</div>
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-dark">
+                <tr><th>Producto</th><th>Tipo</th><th>Cantidad</th><th>Motivo</th><th>Fecha</th></tr>
+            </thead>
+            <tbody>
+                {% for m in movements %}
+                <tr>
+                    <td>{{ m.product.name }}</td>
+                    <td>
+                        <span class="badge bg-{{ 'success' if m.movement_type == 'entrada' else 'danger' }}">
+                            <i class="fas fa-{{ 'arrow-down' if m.movement_type == 'entrada' else 'arrow-up' }} me-1"></i>
+                            {{ m.movement_type|capitalize }}
+                        </span>
+                    </td>
+                    <td>{{ m.quantity }}</td>
+                    <td>{{ m.reason or '—' }}</td>
+                    <td>{{ m.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-4">No hay movimientos registrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% if pagination %}
+{% include 'layouts/_pagination.html' %}
+{% endif %}
+{% endblock %}

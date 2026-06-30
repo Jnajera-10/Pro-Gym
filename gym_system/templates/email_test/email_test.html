@@ -1,0 +1,235 @@
+{% extends "layouts/base.html" %}
+{% block title %}Prueba de Emails{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <div class="d-flex align-items-center mb-4">
+    <i class="fas fa-flask me-2 text-warning fs-4"></i>
+    <h2 class="mb-0">Prueba de Emails</h2>
+    <span class="badge bg-warning text-dark ms-2">Solo Admin</span>
+  </div>
+
+  {# ── Estado de variables de entorno ── #}
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="card-title text-muted mb-3"><i class="fas fa-key me-1"></i>Variables de entorno</h6>
+          <div class="d-flex align-items-center mb-2">
+            {% if brevo_ok %}
+              <span class="badge bg-success me-2">✓</span>
+            {% else %}
+              <span class="badge bg-danger me-2">✗</span>
+            {% endif %}
+            <code>BREVO_API_KEY</code>
+            {% if not brevo_ok %}
+              <small class="text-danger ms-2">— No definida en Render</small>
+            {% endif %}
+          </div>
+          <div class="d-flex align-items-center">
+            {% if mail_from_ok %}
+              <span class="badge bg-success me-2">✓</span>
+            {% else %}
+              <span class="badge bg-danger me-2">✗</span>
+            {% endif %}
+            <code>MAIL_FROM</code>
+            {% if not mail_from_ok %}
+              <small class="text-danger ms-2">— No definida en Render</small>
+            {% endif %}
+          </div>
+          {% if not brevo_ok or not mail_from_ok %}
+            <div class="alert alert-warning mt-3 mb-0 py-2 small">
+              Los emails no se enviarán hasta que estas variables estén configuradas en
+              <strong>Render → Environment</strong>.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="card-title text-muted mb-3"><i class="fas fa-calendar-alt me-1"></i>Fecha de referencia</h6>
+          <p class="mb-1">
+            <strong>Fecha real:</strong>
+            <span class="text-muted">{{ real_today.strftime('%d/%m/%Y') }}</span>
+          </p>
+          {% if simulated %}
+            <p class="mb-3">
+              <strong>Fecha simulada:</strong>
+              <span class="badge bg-warning text-dark fs-6">{{ simulated.strftime('%d/%m/%Y') }}</span>
+              <small class="text-muted ms-1">(activa)</small>
+            </p>
+            <form method="POST" action="{{ url_for('email_test.clear_date') }}" class="d-inline">
+              <button class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>Quitar fecha simulada
+              </button>
+            </form>
+          {% else %}
+            <p class="text-muted small mb-3">No hay fecha simulada. Se usa la fecha real.</p>
+          {% endif %}
+
+          <form method="POST" action="{{ url_for('email_test.set_date') }}" class="mt-2">
+            <div class="input-group input-group-sm">
+              <input type="date" name="fecha" class="form-control"
+                     value="{{ simulated or real_today }}" required>
+              <button class="btn btn-warning" type="submit">
+                <i class="fas fa-clock me-1"></i>Simular fecha
+              </button>
+            </div>
+            <small class="text-muted">Cambia la fecha para que el job crea que "hoy" es otro día.</small>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Pagos próximos a vencer ── #}
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom">
+      <h5 class="mb-0">
+        <i class="fas fa-clock me-2 text-warning"></i>
+        Pagos próximos a vencer
+        {% if simulated %}
+          <small class="text-warning">(relativo a {{ simulated.strftime('%d/%m/%Y') }})</small>
+        {% endif %}
+      </h5>
+    </div>
+    <div class="card-body p-0">
+      {% if upcoming %}
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Cliente</th>
+                <th>Plan</th>
+                <th>Vence</th>
+                <th>Estado</th>
+                <th>Email</th>
+                <th>Enviar prueba</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in upcoming %}
+              <tr>
+                <td>{{ p.client.full_name if p.client else '—' }}</td>
+                <td>{{ p.membership.name if p.membership else '—' }}</td>
+                <td>{{ p.end_date.strftime('%d/%m/%Y') }}</td>
+                <td>
+                  {% if p._days_left < 0 %}
+                    <span class="badge bg-danger">Venció hace {{ p._days_left|abs }} día(s)</span>
+                  {% elif p._days_left == 0 %}
+                    <span class="badge bg-danger">Vence hoy</span>
+                  {% elif p._days_left == 1 %}
+                    <span class="badge bg-warning text-dark">Vence mañana</span>
+                  {% elif p._days_left <= 3 %}
+                    <span class="badge bg-warning text-dark">En {{ p._days_left }} días</span>
+                  {% else %}
+                    <span class="badge bg-secondary">En {{ p._days_left }} días</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if p.client and p.client.email %}
+                    <small class="text-muted">{{ p.client.email }}</small>
+                  {% else %}
+                    <small class="text-danger">Sin email</small>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if p.client and p.client.email %}
+                    <form method="POST" action="{{ url_for('email_test.send_test') }}" class="d-inline">
+                      <input type="hidden" name="payment_id" value="{{ p.id }}">
+                      <select name="tipo" class="form-select form-select-sm d-inline-block w-auto me-1">
+                        <option value="confirmacion">Confirmación pago</option>
+                        <option value="aviso_3">Aviso 3 días</option>
+                        <option value="aviso_1">Aviso 1 día</option>
+                        <option value="expirado">Expirado</option>
+                      </select>
+                      <button class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-paper-plane"></i>
+                      </button>
+                    </form>
+                  {% else %}
+                    <small class="text-muted">—</small>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-center py-4 text-muted">
+          <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
+          <p>No hay pagos próximos a vencer en los próximos 5 días.</p>
+          <small>Prueba simulando una fecha diferente.</small>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Ejecutar job manualmente ── #}
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <h6 class="mb-1"><i class="fas fa-play-circle me-2 text-success"></i>Ejecutar job de vencimientos</h6>
+        <small class="text-muted">
+          Corre el job ahora usando la fecha
+          {% if simulated %}
+            <strong class="text-warning">simulada ({{ simulated.strftime('%d/%m/%Y') }})</strong>
+          {% else %}
+            <strong>real ({{ real_today.strftime('%d/%m/%Y') }})</strong>
+          {% endif %}.
+          Envía todos los avisos de ese día.
+        </small>
+      </div>
+      <form method="POST" action="{{ url_for('email_test.run_job') }}">
+        <button class="btn btn-success">
+          <i class="fas fa-rocket me-1"></i>Ejecutar ahora
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {# ── Envío directo a cualquier pago ── #}
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom">
+      <h5 class="mb-0"><i class="fas fa-envelope me-2 text-primary"></i>Enviar email a cualquier pago</h5>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('email_test.send_test') }}" class="row g-3">
+        <div class="col-md-5">
+          <label class="form-label">Pago / Cliente</label>
+          <select name="payment_id" class="form-select" required>
+            <option value="">Selecciona un pago...</option>
+            {% for p in upcoming %}
+              <option value="{{ p.id }}">
+                {{ p.client.full_name if p.client else '?' }} —
+                {{ p.membership.name if p.membership else '?' }} —
+                vence {{ p.end_date.strftime('%d/%m/%Y') }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Tipo de email</label>
+          <select name="tipo" class="form-select" required>
+            <option value="confirmacion">✅ Confirmación de pago</option>
+            <option value="aviso_3">🔔 Aviso vencimiento (3 días)</option>
+            <option value="aviso_1">⚠️ Aviso vencimiento (1 día)</option>
+            <option value="expirado">❌ Membresía expirada</option>
+          </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          <button class="btn btn-primary w-100">
+            <i class="fas fa-paper-plane me-1"></i>Enviar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

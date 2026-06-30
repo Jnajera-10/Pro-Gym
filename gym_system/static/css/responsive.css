@@ -1,0 +1,7 @@
+@media (max-width: 576px) {
+    .hide-mobile { display: none !important; }
+    .card-body { padding: 1rem; }
+    h4 { font-size: 1.1rem; }
+    /* El main no debe quedar aplastado cuando el sidebar es drawer */
+    main { padding: 1rem !important; }
+}

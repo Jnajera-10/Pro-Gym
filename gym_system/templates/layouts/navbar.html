@@ -1,0 +1,44 @@
+<nav class="navbar navbar-dark bg-dark px-3">
+    <!-- Botón hamburguesa (solo visible en móvil) -->
+    <button class="btn btn-outline-light btn-sm d-md-none me-2" id="sidebarToggle" type="button" aria-label="Abrir menú">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+        <img src="{{ url_for('static', filename='img/logo.jpg') }}"
+             alt="PRO-GYM Logo"
+             style="height:38px;width:38px;object-fit:cover;border-radius:50%;">
+        <span class="fw-bold">PRO-GYM</span>
+    </a>
+
+    <div class="ms-auto d-flex align-items-center gap-3">
+        <span class="text-light small d-none d-sm-inline" id="colombiaTime"></span>
+
+        {# ── Menú de usuario: nombre + perfil + salir ── #}
+        <div class="dropdown">
+            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-user-circle me-1"></i>
+                <span class="d-none d-sm-inline">{{ session.get('user_username', 'Usuario') }}</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('profile.index') }}">
+                        <i class="fas fa-id-badge me-2"></i>Mi Perfil
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('profile.index') }}#pw_form">
+                        <i class="fas fa-key me-2"></i>Cambiar Contraseña
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>

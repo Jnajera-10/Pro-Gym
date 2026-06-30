@@ -1,0 +1,119 @@
+{% extends "layouts/base.html" %}
+{% block title %}Recibo de Pago{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-body p-4">
+                <div class="text-center mb-3">
+                    <img src="{{ url_for('static', filename='img/logo.jpg') }}"
+                         alt="PRO-GYM Logo"
+                         style="width:80px;height:80px;object-fit:cover;border-radius:50%;border:3px solid #ffc107;margin-bottom:10px;">
+                    <h5 class="fw-bold mb-0">RECIBO DE PAGO</h5>
+                    <small class="text-muted">N° {{ payment.id }}</small>
+                </div>
+                <table class="table table-bordered">
+                    <tr><th>Cliente</th><td>
+                        {% if payment.membership and payment.membership.membership_type == 'diario' and payment.notes %}
+                            <span class="fw-bold text-primary">{{ payment.notes }}</span>
+                            <span class="text-muted small ms-2">(Pase diario)</span>
+                        {% else %}
+                            {{ payment.client.full_name }}
+                        {% endif %}
+                    </td></tr>
+                    <tr><th>Membresía</th><td>
+                        {{ payment.membership.name }}
+                        {% if payment.membership.membership_type == 'diario' and payment.daily_quantity > 1 %}
+                            <span class="badge bg-primary ms-2">{{ payment.daily_quantity }} personas</span>
+                        {% endif %}
+                    </td></tr>
+                    <tr><th>Monto membresía</th><td class="fw-bold">
+                        {% set mem_amount = payment.amount - (payment.items | sum(attribute='subtotal') if payment.items else 0) %}
+                        ${{ '{:,.0f}'.format(mem_amount) }}
+                        {% if payment.membership.membership_type == 'diario' and payment.daily_quantity > 1 %}
+                            <span class="text-muted small">({{ payment.daily_quantity }} × ${{ '{:,.0f}'.format(mem_amount / payment.daily_quantity) }})</span>
+                        {% endif %}
+                    </td></tr>
+
+                    {% if payment.items %}
+                    <tr>
+                        <th>Productos</th>
+                        <td>
+                            <table class="table table-sm mb-0">
+                                {% for item in payment.items %}
+                                <tr>
+                                    <td>{{ item.product.name }}</td>
+                                    <td class="text-muted small">x{{ item.quantity }}</td>
+                                    <td class="text-success fw-bold">${{ '{:,.0f}'.format(item.subtotal) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <tr><th>TOTAL</th><td class="fw-bold text-success fs-5">${{ '{:,.0f}'.format(payment.amount) }}</td></tr>
+                    <tr><th>Fecha de Pago</th><td>{{ payment.payment_date.strftime('%d/%m/%Y') }}</td></tr>
+                    <tr><th>Válido desde</th><td>{{ payment.start_date.strftime('%d/%m/%Y') }}</td></tr>
+                    <tr><th>Vence</th><td>{{ payment.end_date.strftime('%d/%m/%Y') }}</td></tr>
+                    <tr><th>Método</th><td>
+                        {% set split = payment.payment_method.split('|') if payment.payment_method else ['efectivo'] %}
+                        {% if split | length == 1 %}
+                            {{ payment.payment_method.split(':')[0] | capitalize }}
+                            {% if ':' in (payment.payment_method or '') %}
+                                — ${{ '{:,.0f}'.format(payment.payment_method.split(':')[1] | float) }}
+                            {% endif %}
+                        {% else %}
+                            <ul class="mb-0 ps-3">
+                            {% for part in split %}
+                                {% set pieces = part.split(':') %}
+                                <li>{{ pieces[0] | capitalize }}{% if pieces | length > 1 %} — ${{ '{:,.0f}'.format(pieces[1] | float) }}{% endif %}</li>
+                            {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </td></tr>
+                    <tr><th>Turno</th><td>
+                        {% if payment.shift == 'mañana' %}🌅 Mañana (6am – 1pm)
+                        {% elif payment.shift == 'tarde' %}🌆 Tarde (1pm – cierre)
+                        {% else %}—{% endif %}
+                    </td></tr>
+                    {% if payment.cash_received %}
+                    <tr><th>Efectivo recibido</th><td>${{ '{:,.0f}'.format(payment.cash_received) }}</td></tr>
+                    <tr><th>Vuelto</th><td class="fw-bold text-warning">${{ '{:,.0f}'.format(payment.cash_change or 0) }}</td></tr>
+                    {% endif %}
+                    {% if payment.notes and not (payment.membership and payment.membership.membership_type == 'diario') %}
+                    <tr><th>Observaciones</th><td>{{ payment.notes }}</td></tr>
+                    {% endif %}
+                </table>
+
+                {% if daily_count %}
+                <div class="alert alert-info text-center py-2 mb-3">
+                    <i class="fas fa-calendar-day me-1"></i>
+                    Pagos <strong>Diarios</strong> registrados el {{ payment.payment_date.strftime('%d/%m/%Y') }}:
+                    <span class="badge bg-primary fs-6 ms-1">{{ daily_count }}</span>
+                </div>
+                {% endif %}
+
+                {% if payment.client.email %}
+                <div class="alert alert-success py-2 text-center mb-3">
+                    <i class="fas fa-envelope-circle-check me-1"></i>
+                    Recibo enviado a <strong>{{ payment.client.email }}</strong>
+                </div>
+                {% else %}
+                <div class="alert alert-warning py-2 text-center mb-3">
+                    <i class="fas fa-envelope me-1"></i>
+                    Este cliente no tiene email registrado.
+                </div>
+                {% endif %}
+
+                <div class="d-flex gap-2 justify-content-center mt-3">
+                    <button onclick="window.print()" class="btn btn-outline-secondary">
+                        <i class="fas fa-print me-1"></i>Imprimir
+                    </button>
+                    <a href="{{ url_for('payments.index') }}" class="btn btn-primary">Volver a Pagos</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

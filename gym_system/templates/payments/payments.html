@@ -1,0 +1,241 @@
+{% extends "layouts/base.html" %}
+{% block title %}Pagos{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="fas fa-money-bill me-2"></i>Pagos</h4>
+    <div class="d-flex align-items-center gap-3">
+        {% if daily_count_today is defined and daily_count_today > 0 %}
+        <span class="badge bg-info text-dark fs-6 px-3 py-2">
+            <i class="fas fa-calendar-day me-1"></i>
+            Diarios hoy: <strong>{{ daily_count_today }}</strong>
+        </span>
+        {% endif %}
+        <a href="{{ url_for('payments.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Nuevo Pago
+        </a>
+    </div>
+</div>
+
+{# ── FILTROS ─────────────────────────────────────────────────────── #}
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="GET" action="{{ url_for('payments.index') }}" class="row g-2 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label small mb-1 text-muted">Buscar cliente</label>
+                <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm"
+                       placeholder="Nombre o documento…">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1 text-muted">Plan</label>
+                <select name="plan" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    {% for m in memberships %}
+                    <option value="{{ m.id }}" {{ 'selected' if plan_filter == m.id|string }}>{{ m.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1 text-muted">Método</label>
+                <select name="method" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    <option value="efectivo"      {{ 'selected' if method == 'efectivo' }}>Efectivo</option>
+                    <option value="transferencia" {{ 'selected' if method == 'transferencia' }}>Transferencia</option>
+                    <option value="nequi"         {{ 'selected' if method == 'nequi' }}>Nequi</option>
+                    <option value="daviplata"     {{ 'selected' if method == 'daviplata' }}>Daviplata</option>
+                    <option value="tarjeta"       {{ 'selected' if method == 'tarjeta' }}>Tarjeta</option>
+                    <option value="datafono"      {{ 'selected' if method == 'datafono' }}>Datáfono</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1 text-muted">Desde</label>
+                <input type="date" name="date_from" value="{{ date_from }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1 text-muted">Hasta</label>
+                <input type="date" name="date_to" value="{{ date_to }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1 text-muted">Turno</label>
+                <select name="shift" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    <option value="mañana"  {{ 'selected' if shift == 'mañana' }}>☀️ Mañana</option>
+                    <option value="tarde"   {{ 'selected' if shift == 'tarde' }}>🌙 Tarde</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-1 d-flex gap-1">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="fas fa-search"></i>
+                </button>
+                <a href="{{ url_for('payments.index') }}" class="btn btn-outline-secondary btn-sm w-100" title="Limpiar filtros">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ── TABLA ────────────────────────────────────────────────────────── #}
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Membresía</th>
+                        <th>Monto</th>
+                        <th>Fecha Pago</th>
+                        <th>Vencimiento</th>
+                        <th>Días restantes</th>
+                        <th>Método</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in payments %}
+                    {% set dias = (p.end_date - today).days %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('clients.detail', client_id=p.client.id) }}"
+                               class="text-decoration-none">{{ p.client.full_name }}</a>
+                        </td>
+                        <td>{{ p.membership.name }}</td>
+                        <td>${{ '{:,.0f}'.format(p.amount) }}</td>
+                        <td>{{ p.payment_date.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ p.end_date.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            {% if dias < 0 %}
+                                <span class="badge bg-secondary">Vencida</span>
+                            {% elif dias == 0 %}
+                                {% if p.membership and p.membership.membership_type == 'diario' %}
+                                <span class="badge" style="background-color:#fd7e14">Hoy</span>
+                                {% else %}
+                                <span class="badge bg-danger">Hoy</span>
+                                {% endif %}
+                            {% elif dias <= 3 %}
+                                <span class="badge bg-warning text-dark">{{ dias }} día{{ 's' if dias != 1 }}</span>
+                            {% else %}
+                                <span class="badge bg-success">{{ dias }} días</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% set ICONOS = {
+                                'efectivo':      '💵',
+                                'nequi':         '📱',
+                                'transferencia': '🏦',
+                                'tarjeta':       '💳',
+                                'datafono':      '🖥',
+                                'daviplata':     '📲',
+                            } %}
+                            {% set parts = [] %}
+                            {% if p.payment_method %}
+                                {% for chunk in p.payment_method.split('|') %}
+                                    {% set pieces = chunk.split(':') %}
+                                    {% set met = pieces[0].strip() %}
+                                    {% set _ = parts.append((ICONOS.get(met, '💰') ~ ' ' ~ met | capitalize)) %}
+                                {% endfor %}
+                            {% endif %}
+                            <span class="small">{{ parts | join(' + ') or '—' }}</span>
+                        </td>
+                        <td>
+                            {% if p.payment_status == 'pendiente' %}
+                                <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Debe</span>
+                            {% else %}
+                                <span class="badge bg-success"><i class="fas fa-check me-1"></i>Pagado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('payments.receipt', payment_id=p.id) }}"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-receipt me-1"></i>Recibo
+                            </a>
+                            {% if p.payment_status == 'pendiente' %}
+                            <form method="POST" action="{{ url_for('payments.mark_paid', payment_id=p.id) }}"
+                                  style="display:inline"
+                                  onsubmit="return confirm('¿Confirmar pago de {{ p.client.full_name if p.client else '' }}?')">
+                                <button type="submit" class="btn btn-sm btn-success" title="Marcar como pagado">
+                                    <i class="fas fa-check"></i> Cobrar
+                                </button>
+                            </form>
+                            {% endif %}
+                            {# ── Solo el admin puede eliminar pagos ── #}
+                            {% if session.get('user_role') == 'admin' %}
+                            <button class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalEliminar"
+                                    data-payment-id="{{ p.id }}"
+                                    data-cliente="{{ p.client.full_name if p.client else '?' }}"
+                                    data-monto="${{ '{:,.0f}'.format(p.amount) }}"
+                                    data-plan="{{ p.membership.name if p.membership else '?' }}"
+                                    title="Eliminar pago">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox me-2"></i>No hay pagos que coincidan con los filtros.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% include 'layouts/_pagination.html' %}
+{# ── Modal: Confirmar eliminación de pago (solo admin) ───────────────── #}
+{% if session.get('user_role') == 'admin' %}
+<div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-trash-alt me-2"></i>Eliminar pago
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="formEliminar">
+                <div class="modal-body">
+                    <p class="mb-1">Cliente: <strong id="elim-cliente"></strong></p>
+                    <p class="mb-3">
+                        Plan: <span class="badge bg-secondary" id="elim-plan"></span>
+                        &nbsp; Monto: <strong class="text-success" id="elim-monto"></strong>
+                    </p>
+                    <p class="text-danger small mb-0">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        El pago se eliminará inmediatamente y quedará registrado en auditoría.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Eliminar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const modal = document.getElementById('modalEliminar');
+    if (!modal) return;
+    modal.addEventListener('show.bs.modal', function(e) {
+        const btn = e.relatedTarget;
+        document.getElementById('elim-cliente').textContent = btn.dataset.cliente;
+        document.getElementById('elim-plan').textContent    = btn.dataset.plan;
+        document.getElementById('elim-monto').textContent   = btn.dataset.monto;
+        document.getElementById('formEliminar').action =
+            `/payments/${btn.dataset.paymentId}/delete`;
+    });
+})();
+</script>
+{% endif %}
+
+{% endblock %}

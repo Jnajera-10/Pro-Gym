@@ -1,0 +1,322 @@
+{% extends "layouts/base.html" %}
+{% block title %}Nueva Venta{% endblock %}
+{% block content %}
+<h4 class="mb-4"><i class="fas fa-shopping-cart me-2"></i>Nueva Venta</h4>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form method="POST" id="saleForm">
+
+      {# ── Fila 1: Cliente + Método + Observaciones ── #}
+      <div class="row g-3 mb-4">
+
+        {# Cliente con autocompletado #}
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">Cliente <span class="text-muted fw-normal">(opcional)</span></label>
+          <div class="position-relative">
+            <input type="text" id="clientSearch" class="form-control"
+                   placeholder="Escribir nombre o documento…" autocomplete="off">
+            <input type="hidden" name="client_id" id="clientIdInput">
+            <div id="clientDropdown"
+                 class="dropdown-menu w-100 shadow-sm"
+                 style="display:none; max-height:240px; overflow-y:auto; position:absolute; z-index:1055; top:100%; left:0;">
+            </div>
+          </div>
+          <div id="clientSelected" class="mt-1" style="display:none">
+            <span class="badge bg-success fs-6 px-2 py-1" id="clientSelectedLabel"></span>
+            <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1" id="clearClient">✕ quitar</button>
+          </div>
+        </div>
+
+        {# Método de pago #}
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Método de Pago</label>
+          <select name="payment_method" class="form-select">
+            <option value="efectivo">💵 Efectivo</option>
+            <option value="transferencia">🏦 Transferencia</option>
+            <option value="nequi">📱 Nequi</option>
+            <option value="daviplata">📲 Daviplata</option>
+            <option value="tarjeta">💳 Tarjeta</option>
+            <option value="datafono">🖥 Datáfono</option>
+          </select>
+        </div>
+
+        {# Observaciones #}
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Observaciones</label>
+          <input type="text" name="notes" class="form-control" placeholder="Opcional…">
+        </div>
+      </div>
+
+      {# ── Buscador de productos ── #}
+      <h6 class="fw-bold mb-2"><i class="fas fa-boxes me-1"></i>Productos</h6>
+      <div class="row g-2 mb-3">
+        <div class="col-md-6 position-relative">
+          <input type="text" id="productSearch" class="form-control"
+                 placeholder="🔍 Buscar producto por nombre…" autocomplete="off">
+          <div id="productDropdown"
+               class="dropdown-menu w-100 shadow-sm"
+               style="display:none; max-height:260px; overflow-y:auto; position:absolute; z-index:1055; top:100%; left:0;">
+          </div>
+        </div>
+        <div class="col-md-6 d-flex align-items-center">
+          <span class="text-muted small"><i class="fas fa-info-circle me-1"></i>Busca y selecciona un producto para agregarlo al carrito.</span>
+        </div>
+      </div>
+
+      {# ── Carrito ── #}
+      <div id="cartWrapper">
+        <table class="table table-bordered" id="cartTable" style="display:none">
+          <thead class="table-dark">
+            <tr>
+              <th>Producto</th>
+              <th style="width:90px">Stock</th>
+              <th style="width:110px">Precio unit.</th>
+              <th style="width:100px">Cantidad</th>
+              <th style="width:110px">Subtotal</th>
+              <th style="width:50px"></th>
+            </tr>
+          </thead>
+          <tbody id="cartBody"></tbody>
+          <tfoot>
+            <tr class="table-success fw-bold">
+              <td colspan="4" class="text-end">TOTAL</td>
+              <td id="cartTotal">$0</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+        <p id="cartEmpty" class="text-muted text-center py-3">
+          <i class="fas fa-shopping-basket me-2"></i>Aún no has agregado productos.
+        </p>
+      </div>
+
+      {# Campos ocultos que se envían al servidor #}
+      <div id="hiddenInputs"></div>
+
+      {# ── Pago pendiente ── #}
+      <div class="mb-3 mt-3">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="is_pending" id="is_pending">
+          <label class="form-check-label text-warning fw-semibold" for="is_pending">
+            <i class="fas fa-clock me-1"></i>
+            Registrar como <strong>Venta Pendiente</strong>
+            <span class="text-muted small fw-normal">(el cliente aún no ha pagado)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success" id="submitBtn" disabled>
+          <i class="fas fa-check me-1"></i>Registrar Venta
+        </button>
+        <a href="{{ url_for('sales.index') }}" class="btn btn-secondary">Cancelar</a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{# ── Datos embebidos ── #}
+<script>
+// Catálogo de productos y clientes pasados desde el servidor
+const PRODUCTS = [
+  {% for p in products %}
+  { id: {{ p.id }}, name: {{ p.name | tojson }}, stock: {{ p.quantity }}, price: {{ p.sale_price }} },
+  {% endfor %}
+];
+
+const CLIENTS = [
+  {% for c in clients %}
+  { id: {{ c.id }}, name: {{ c.full_name | tojson }}, doc: {{ (c.document_number or '') | tojson }} },
+  {% endfor %}
+];
+</script>
+<script>
+// ── Estado del carrito ──────────────────────────────────────────────
+const cart = {};   // { productId: { name, stock, price, qty } }
+
+// ── Helpers de formato ──────────────────────────────────────────────
+function fmtNum(n) {
+  return '$' + Math.round(n).toLocaleString('es-CO');
+}
+
+// ── Renderizar carrito ──────────────────────────────────────────────
+function renderCart() {
+  const ids = Object.keys(cart);
+  const tbody = document.getElementById('cartBody');
+  const table = document.getElementById('cartTable');
+  const empty = document.getElementById('cartEmpty');
+  const hidden = document.getElementById('hiddenInputs');
+  const submit = document.getElementById('submitBtn');
+
+  tbody.innerHTML = '';
+  hidden.innerHTML = '';
+
+  let total = 0;
+  ids.forEach(id => {
+    const item = cart[id];
+    const sub = item.price * item.qty;
+    total += sub;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${item.name}</td>
+      <td class="text-center">${item.stock}</td>
+      <td>${fmtNum(item.price)}</td>
+      <td>
+        <input type="number" class="form-control form-control-sm text-center qty-input"
+               data-id="${id}" value="${item.qty}" min="1" max="${item.stock}" style="width:75px">
+      </td>
+      <td class="subtotal-cell">${fmtNum(sub)}</td>
+      <td>
+        <button type="button" class="btn btn-sm btn-outline-danger remove-btn" data-id="${id}">
+          <i class="fas fa-trash"></i>
+        </button>
+      </td>`;
+    tbody.appendChild(tr);
+
+    // Inputs ocultos para el servidor
+    hidden.insertAdjacentHTML('beforeend',
+      `<input type="hidden" name="product_id" value="${id}">` +
+      `<input type="hidden" class="hidden-qty" data-id="${id}" name="quantity" value="${item.qty}">`
+    );
+  });
+
+  document.getElementById('cartTotal').textContent = fmtNum(total);
+  const hasItems = ids.length > 0;
+  table.style.display = hasItems ? '' : 'none';
+  empty.style.display  = hasItems ? 'none' : '';
+  submit.disabled = !hasItems;
+}
+
+// ── Cambio de cantidad en la tabla ─────────────────────────────────
+document.getElementById('cartBody').addEventListener('input', e => {
+  if (!e.target.classList.contains('qty-input')) return;
+  const id  = e.target.dataset.id;
+  const val = parseInt(e.target.value) || 1;
+  const max = cart[id].stock;
+  cart[id].qty = Math.min(Math.max(val, 1), max);
+  e.target.value = cart[id].qty;
+  // Actualizar subtotal en la misma fila
+  const row = e.target.closest('tr');
+  row.querySelector('.subtotal-cell').textContent = fmtNum(cart[id].price * cart[id].qty);
+  // Actualizar hidden
+  document.querySelector(`.hidden-qty[data-id="${id}"]`).value = cart[id].qty;
+  // Actualizar total
+  let total = 0;
+  Object.values(cart).forEach(i => total += i.price * i.qty);
+  document.getElementById('cartTotal').textContent = fmtNum(total);
+});
+
+// ── Eliminar del carrito ────────────────────────────────────────────
+document.getElementById('cartBody').addEventListener('click', e => {
+  const btn = e.target.closest('.remove-btn');
+  if (!btn) return;
+  delete cart[btn.dataset.id];
+  renderCart();
+});
+
+// ── Buscador de productos ───────────────────────────────────────────
+const productSearch   = document.getElementById('productSearch');
+const productDropdown = document.getElementById('productDropdown');
+
+function showProductResults(q) {
+  const term = q.trim().toLowerCase();
+  const matches = term.length === 0
+    ? PRODUCTS.filter(p => p.stock > 0)
+    : PRODUCTS.filter(p => p.stock > 0 && (p.name.toLowerCase().includes(term)));
+
+  if (matches.length === 0) {
+    productDropdown.innerHTML = '<div class="dropdown-item text-muted">Sin resultados</div>';
+  } else {
+    productDropdown.innerHTML = matches.slice(0, 30).map(p => `
+      <div class="dropdown-item d-flex justify-content-between align-items-center product-option"
+           data-id="${p.id}" style="cursor:pointer">
+        <span>${p.name}</span>
+        <span class="text-muted small ms-2">${fmtNum(p.price)} · Stock: ${p.stock}</span>
+      </div>`).join('');
+  }
+  productDropdown.style.display = 'block';
+}
+
+productSearch.addEventListener('focus', () => showProductResults(productSearch.value));
+productSearch.addEventListener('input', () => showProductResults(productSearch.value));
+
+productDropdown.addEventListener('click', e => {
+  const item = e.target.closest('.product-option');
+  if (!item) return;
+  const id = item.dataset.id;
+  const prod = PRODUCTS.find(p => String(p.id) === id);
+  if (!prod) return;
+
+  if (cart[id]) {
+    cart[id].qty = Math.min(cart[id].qty + 1, prod.stock);
+  } else {
+    cart[id] = { name: prod.name, stock: prod.stock, price: prod.price, qty: 1 };
+  }
+  renderCart();
+  productDropdown.style.display = 'none';
+  productSearch.value = '';
+  productSearch.focus();
+});
+
+// ── Buscador de clientes ────────────────────────────────────────────
+const clientSearch   = document.getElementById('clientSearch');
+const clientDropdown = document.getElementById('clientDropdown');
+const clientIdInput  = document.getElementById('clientIdInput');
+const clientSelected = document.getElementById('clientSelected');
+const clientLabel    = document.getElementById('clientSelectedLabel');
+
+function showClientResults(q) {
+  const term = q.trim().toLowerCase();
+  const matches = term.length < 1
+    ? []
+    : CLIENTS.filter(c =>
+        c.name.toLowerCase().includes(term) || c.doc.toLowerCase().includes(term)
+      );
+
+  if (term.length < 1) { clientDropdown.style.display = 'none'; return; }
+
+  if (matches.length === 0) {
+    clientDropdown.innerHTML = '<div class="dropdown-item text-muted">Sin coincidencias</div>';
+  } else {
+    clientDropdown.innerHTML = matches.slice(0, 15).map(c => `
+      <div class="dropdown-item client-option" data-id="${c.id}" data-name="${c.name}" style="cursor:pointer">
+        <span class="fw-semibold">${c.name}</span>
+        <span class="text-muted small ms-2">${c.doc}</span>
+      </div>`).join('');
+  }
+  clientDropdown.style.display = 'block';
+}
+
+clientSearch.addEventListener('input', () => showClientResults(clientSearch.value));
+clientSearch.addEventListener('focus', () => { if (clientSearch.value) showClientResults(clientSearch.value); });
+
+clientDropdown.addEventListener('click', e => {
+  const item = e.target.closest('.client-option');
+  if (!item) return;
+  clientIdInput.value = item.dataset.id;
+  clientLabel.textContent = item.dataset.name;
+  clientSelected.style.display = 'block';
+  clientSearch.style.display = 'none';
+  clientDropdown.style.display = 'none';
+});
+
+document.getElementById('clearClient').addEventListener('click', () => {
+  clientIdInput.value = '';
+  clientSearch.value = '';
+  clientSearch.style.display = '';
+  clientSelected.style.display = 'none';
+  clientDropdown.style.display = 'none';
+});
+
+// ── Cerrar dropdowns al click fuera ────────────────────────────────
+document.addEventListener('click', e => {
+  if (!productSearch.contains(e.target) && !productDropdown.contains(e.target))
+    productDropdown.style.display = 'none';
+  if (!clientSearch.contains(e.target) && !clientDropdown.contains(e.target))
+    clientDropdown.style.display = 'none';
+});
+</script>
+{% endblock %}

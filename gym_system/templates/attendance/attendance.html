@@ -1,0 +1,124 @@
+{% extends "layouts/base.html" %}
+{% block title %}Asistencia{% endblock %}
+{% block content %}
+<h4 class="mb-4"><i class="fas fa-calendar-check me-2"></i>Control de Asistencia</h4>
+
+<div class="row g-3 mb-4">
+    <!-- ── Panel izquierdo: registrar entrada ─────────────────── -->
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="fw-bold mb-1">Registrar Entrada</h6>
+                <p class="text-muted small mb-3">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Solo aparecen clientes con membresía vigente hoy
+                    <span class="badge bg-success ms-1">{{ clients|length }}</span>
+                </p>
+
+                {# ── Búsqueda rápida ────────────────────────────── #}
+                <form method="GET" action="{{ url_for('attendance.index') }}" class="mb-3">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" name="q" class="form-control"
+                               placeholder="Buscar por nombre o documento…"
+                               value="{{ search_q }}">
+                        {% if search_q %}
+                        <a href="{{ url_for('attendance.index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i>
+                        </a>
+                        {% endif %}
+                        <button class="btn btn-outline-primary" type="submit">Buscar</button>
+                    </div>
+                </form>
+
+                {# ── Formulario de registro ─────────────────────── #}
+                <form method="POST" action="{{ url_for('attendance.register') }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Cliente con membresía activa</label>
+                        {% if clients %}
+                        <select name="client_id" class="form-select" required>
+                            <option value="">Selecciona cliente…</option>
+                            {% for c in clients %}
+                            <option value="{{ c.id }}">{{ c.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text text-success">
+                            <i class="fas fa-check-circle me-1"></i>
+                            {{ clients|length }} cliente{{ 's' if clients|length != 1 }} con membresía vigente
+                            {% if search_q %} — filtrado por "{{ search_q }}"{% endif %}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning mb-0 py-2 small">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            {% if search_q %}
+                                Ningún cliente activo coincide con "<strong>{{ search_q }}</strong>".
+                                <a href="{{ url_for('attendance.index') }}">Limpiar búsqueda</a>
+                            {% else %}
+                                No hay clientes con membresía vigente hoy.
+                                <a href="{{ url_for('payments.create') }}">Registrar un pago</a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <button type="submit" class="btn btn-success w-100"
+                            {% if not clients %}disabled{% endif %}>
+                        <i class="fas fa-check me-1"></i>Registrar Asistencia
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Panel derecho: asistencias del día ────────────────── -->
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3">
+                    Asistencias de Hoy
+                    <span class="badge bg-primary">{{ today_list|length }}</span>
+                </h6>
+                <div style="max-height:340px;overflow-y:auto">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Hora</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in today_list %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('clients.detail', client_id=a.client.id) }}"
+                                       class="text-decoration-none text-dark fw-semibold">
+                                        {{ a.client.full_name }}
+                                    </a>
+                                </td>
+                                <td>{{ a.check_in.strftime('%H:%M') }}</td>
+                                <td>
+                                    <form method="POST"
+                                          action="{{ url_for('attendance.delete', aid=a.id) }}"
+                                          onsubmit="return confirm('¿Eliminar este registro?')">
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-danger py-0 px-1">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-3">
+                                    <i class="fas fa-door-open me-1"></i>Sin asistencias hoy.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

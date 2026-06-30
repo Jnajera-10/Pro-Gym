@@ -1,0 +1,185 @@
+{% extends 'layouts/base.html' %}
+{% block title %}{{ client.full_name }} - PRO-GYM{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-user me-2"></i>{{ client.full_name }}</h4>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('clients.edit', client_id=client.id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-edit me-1"></i>Editar
+        </a>
+        {% if client.is_active %}
+        <form method="POST" action="{{ url_for('clients.deactivate', client_id=client.id) }}" class="d-inline"
+              onsubmit="return confirm('¿Desactivar a {{ client.full_name }}?')">
+            <button class="btn btn-outline-warning btn-sm">
+                <i class="fas fa-user-slash me-1"></i>Desactivar
+            </button>
+        </form>
+        {% else %}
+        <form method="POST" action="{{ url_for('clients.delete', client_id=client.id) }}" class="d-inline"
+              onsubmit="return confirm('⚠️ ELIMINAR PERMANENTEMENTE a {{ client.full_name }}?\n\nSe borrarán todos sus pagos, asistencias y notificaciones.\nSu documento quedará libre para volver a registrarse.\n\nEsta acción NO se puede deshacer.')">
+            <button class="btn btn-danger btn-sm">
+                <i class="fas fa-trash me-1"></i>Eliminar permanentemente
+            </button>
+        </form>
+        {% endif %}
+        <a href="{{ url_for('clients.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i>Volver
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Datos personales -->
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header fw-semibold"><i class="fas fa-id-card me-2"></i>Datos Personales</div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tr><th class="text-muted" style="width:40%">Documento</th><td>{{ client.document_type }} {{ client.document_number }}</td></tr>
+                    <tr><th class="text-muted">Teléfono</th><td>{{ client.phone or '—' }}</td></tr>
+                    <tr><th class="text-muted">Email</th><td>{{ client.email or '—' }}</td></tr>
+                    <tr><th class="text-muted">Nacimiento</th><td>{{ client.birth_date.strftime('%d/%m/%Y') if client.birth_date else '—' }}</td></tr>
+                    <tr><th class="text-muted">Género</th><td>{{ client.gender or '—' }}</td></tr>
+                    <tr><th class="text-muted">Dirección</th><td>{{ client.address or '—' }}</td></tr>
+                    <tr><th class="text-muted">Matrícula</th><td>{{ client.enrollment_date.strftime('%d/%m/%Y') if client.enrollment_date else '—' }}</td></tr>
+                    <tr><th class="text-muted">Estado</th>
+                        <td><span class="badge bg-{{ 'success' if client.is_active else 'secondary' }}">
+                            {{ 'Activo' if client.is_active else 'Inactivo' }}</span></td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emergencia + membresía activa -->
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header fw-semibold"><i class="fas fa-heartbeat me-2 text-danger"></i>Contacto de Emergencia</div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Nombre:</strong> {{ client.emergency_contact or '—' }}</p>
+                <p class="mb-0"><strong>Teléfono:</strong> {{ client.emergency_phone or '—' }}</p>
+            </div>
+        </div>
+
+        <!-- ── Membresía actual + botón Renovar ───────────────── -->
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-id-badge me-2 text-primary"></i>Membresía Actual</span>
+                {% if active_payment %}
+                    <a href="{{ url_for('payments.renew', client_id=client.id, membership_id=active_payment.membership.id) }}"
+                       class="btn btn-sm btn-success">
+                        <i class="fas fa-sync-alt me-1"></i>Renovar
+                    </a>
+                {% elif last_payment %}
+                    <a href="{{ url_for('payments.renew', client_id=client.id, membership_id=last_payment.membership.id) }}"
+                       class="btn btn-sm btn-warning">
+                        <i class="fas fa-sync-alt me-1"></i>Renovar (vencida)
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('payments.create') }}?client_id={{ client.id }}"
+                       class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i>Nuevo Pago
+                    </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if active_payment %}
+                    {% set days_left = (active_payment.end_date - today).days %}
+                    <p class="mb-1"><strong>Plan:</strong> {{ active_payment.membership.name }}</p>
+                    <p class="mb-1"><strong>Vence:</strong>
+                        <span class="fw-bold {{ 'text-danger' if days_left <= 3 else 'text-success' }}">
+                            {{ active_payment.end_date.strftime('%d/%m/%Y') }}
+                        </span>
+                        <span class="badge {{ 'bg-danger' if days_left <= 0 else 'bg-warning text-dark' if days_left <= 3 else 'bg-success' }} ms-1">
+                            {{ 'Vencida' if days_left < 0 else 'Vence hoy' if days_left == 0 else days_left ~ ' días' }}
+                        </span>
+                    </p>
+                    <p class="mb-2"><strong>Pagado:</strong> ${{ '{:,.0f}'.format(active_payment.amount) }} — {{ active_payment.payment_method }}</p>
+                    {# ── Modificar días ── #}
+                    <form method="POST" action="{{ url_for('payments.extend', payment_id=active_payment.id) }}"
+                          class="d-flex align-items-center gap-2 mt-2"
+                          onsubmit="return confirm('¿Modificar los días de membresía de {{ client.full_name }}?')">
+                        <label class="form-label mb-0 small fw-semibold">Modificar días:</label>
+                        <input type="number" name="days" class="form-control form-control-sm" style="width:90px"
+                               placeholder="Ej: 5 o -3" required>
+                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-calendar-plus me-1"></i>Aplicar
+                        </button>
+                        <span class="text-muted small">positivo = agregar, negativo = quitar</span>
+                    </form>
+                {% elif last_payment %}
+                    <p class="text-muted mb-1">
+                        <i class="fas fa-exclamation-circle me-1 text-warning"></i>Membresía vencida.
+                    </p>
+                    <p class="mb-1 small"><strong>Último plan:</strong> {{ last_payment.membership.name }} — venció el {{ last_payment.end_date.strftime('%d/%m/%Y') }}</p>
+                    {# ── Modificar días del último pago vencido ── #}
+                    <form method="POST" action="{{ url_for('payments.extend', payment_id=last_payment.id) }}"
+                          class="d-flex align-items-center gap-2 mt-2"
+                          onsubmit="return confirm('¿Modificar los días de membresía de {{ client.full_name }}?')">
+                        <label class="form-label mb-0 small fw-semibold">Agregar días:</label>
+                        <input type="number" name="days" class="form-control form-control-sm" style="width:90px"
+                               placeholder="Ej: 30" required>
+                        <button type="submit" class="btn btn-sm btn-outline-warning">
+                            <i class="fas fa-calendar-plus me-1"></i>Aplicar
+                        </button>
+                    </form>
+                {% else %}
+                    <p class="text-muted mb-2">
+                        <i class="fas fa-exclamation-circle me-1"></i>Sin membresía vigente.
+                    </p>
+                    <p class="text-muted small mb-0">Usa el botón <strong>Nuevo Pago</strong> para activarla.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Observaciones -->
+    {% if client.notes %}
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold"><i class="fas fa-sticky-note me-2"></i>Observaciones</div>
+            <div class="card-body"><p class="mb-0">{{ client.notes }}</p></div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Historial de pagos -->
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold"><i class="fas fa-history me-2"></i>Historial de Pagos</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr><th>Membresía</th><th>Monto</th><th>Fecha Pago</th><th>Desde</th><th>Hasta</th><th>Método</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        {% for p in payments %}
+                        <tr class="{{ 'table-success' if p.end_date >= today else '' }}">
+                            <td>{{ p.membership.name }}</td>
+                            <td>${{ '{:,.0f}'.format(p.amount) }}</td>
+                            <td>{{ p.payment_date.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ p.start_date.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ p.end_date.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ p.payment_method }}</td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a href="{{ url_for('payments.receipt', payment_id=p.id) }}"
+                                       class="btn btn-sm btn-outline-primary py-0">Recibo</a>
+                                    {# Renovar desde el historial: renova este mismo plan #}
+                                    <a href="{{ url_for('payments.renew', client_id=client.id, membership_id=p.membership.id) }}"
+                                       class="btn btn-sm btn-outline-success py-0"
+                                       title="Renovar este plan">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" class="text-center text-muted py-3">Sin pagos registrados.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

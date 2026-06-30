@@ -1,0 +1,76 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Editar Cliente - PRO-GYM{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-user-edit me-2"></i>Editar Cliente</h4>
+    <a href="{{ url_for('clients.detail', client_id=client.id) }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Volver
+    </a>
+</div>
+<div class="card shadow-sm" style="max-width:760px">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Nombre Completo *</label>
+                    <input type="text" name="full_name" class="form-control" value="{{ client.full_name }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Tipo Documento *</label>
+                    <select name="document_type" class="form-select" required>
+                        {% for opt, label in [('CC','Cédula'),('TI','Tarjeta Identidad'),('CE','Cédula Extranjería'),('PAS','Pasaporte')] %}
+                        <option value="{{ opt }}" {{ 'selected' if client.document_type == opt }}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Número Documento *</label>
+                    <input type="text" name="document_number" class="form-control" value="{{ client.document_number }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Correo Electrónico</label>
+                    <input type="email" name="email" class="form-control" value="{{ client.email or '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Celular</label>
+                    <input type="tel" name="phone" class="form-control" value="{{ client.phone or '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Fecha Nacimiento</label>
+                    <input type="date" name="birth_date" class="form-control"
+                           value="{{ client.birth_date.strftime('%Y-%m-%d') if client.birth_date else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Género</label>
+                    <select name="gender" class="form-select">
+                        <option value="">— Seleccionar —</option>
+                        {% for opt in ['Masculino','Femenino','Otro'] %}
+                        <option value="{{ opt }}" {{ 'selected' if client.gender == opt }}>{{ opt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-9">
+                    <label class="form-label fw-semibold">Dirección</label>
+                    <input type="text" name="address" class="form-control" value="{{ client.address or '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Contacto Emergencia</label>
+                    <input type="text" name="emergency_contact" class="form-control" value="{{ client.emergency_contact or '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Teléfono Emergencia</label>
+                    <input type="tel" name="emergency_phone" class="form-control" value="{{ client.emergency_phone or '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Observaciones</label>
+                    <textarea name="notes" class="form-control" rows="3">{{ client.notes or '' }}</textarea>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Guardar Cambios</button>
+                    <a href="{{ url_for('clients.detail', client_id=client.id) }}" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

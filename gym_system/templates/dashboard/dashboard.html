@@ -1,0 +1,972 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Dashboard - PRO-GYM{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ══════════════════════════════════════════════
+   DECORACIÓN MUNDIAL 2026 — solo visual
+   Todo el contenido y funcionalidad es idéntico
+   ══════════════════════════════════════════════ */
+
+/* ── Banner de bienvenida ── */
+.welcome-banner {
+    background: linear-gradient(135deg, #060e1c 0%, #0b1628 60%, #060e1c 100%);
+    border: 1px solid rgba(245,197,24,0.18);
+    border-radius: 18px;
+    padding: 2rem 2.5rem;
+    margin-bottom: 1.75rem;
+    position: relative;
+    overflow: hidden;
+}
+/* Franja tricolor superior */
+.welcome-banner::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg,
+        #FF0000 0%, #FF0000 33%,
+        #BF0A30 33%, #BF0A30 66%,
+        #006847 66%, #006847 100%);
+    pointer-events: none;
+}
+/* Círculo decorativo derecha */
+.welcome-banner::after {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(245,197,24,0.05) 0%, transparent 65%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+/* Decoración balón fondo derecha */
+.welcome-banner .deco-ball {
+    position: absolute;
+    bottom: -40px; right: 40px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    border: 1px solid rgba(245,197,24,0.06);
+    pointer-events: none;
+}
+.welcome-banner .deco-ball::after {
+    content: '';
+    position: absolute;
+    top: 15px; left: 15px; right: 15px; bottom: 15px;
+    border-radius: 50%;
+    border: 1px solid rgba(245,197,24,0.04);
+}
+
+/* ── Badge de rol ── */
+.welcome-role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(245,197,24,0.08);
+    border: 1px solid rgba(245,197,24,0.22);
+    color: #f5c518;
+    border-radius: 50px;
+    padding: 0.25rem 0.85rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+}
+
+/* ── Saludo ── */
+.welcome-greeting {
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 700;
+    color: #f0f4ff;
+    margin-bottom: 0.25rem;
+    line-height: 1.2;
+}
+.welcome-greeting span { color: #f5c518; }
+.welcome-sub { color: #6a7d95; font-size: 0.9rem; margin-bottom: 0; }
+
+/* ── Reloj ── */
+.welcome-clock {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 700;
+    color: #f0f4ff;
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+.welcome-date-text { color: #6a7d95; font-size: 0.82rem; margin-top: 0.25rem; text-align: right; }
+
+/* ── Divisor ── */
+.welcome-divider { border-color: rgba(255,255,255,0.07); margin: 1.25rem 0 1rem; }
+
+/* ── Accesos rápidos ── */
+.quick-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.09);
+    color: #8a9bb0;
+    border-radius: 10px;
+    padding: 0.55rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+}
+.quick-btn:hover {
+    border-color: rgba(245,197,24,0.35);
+    color: #f5c518;
+    background: rgba(245,197,24,0.05);
+    transform: translateY(-1px);
+}
+.quick-btn i { font-size: 0.9rem; opacity: 0.8; }
+.quick-btn:hover i { opacity: 1; }
+
+/* ── Check animado ── */
+@keyframes popIn {
+    0%   { transform: scale(0.5); opacity: 0; }
+    70%  { transform: scale(1.15); }
+    100% { transform: scale(1); opacity: 1; }
+}
+.welcome-check-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px; height: 52px;
+    background: rgba(34,197,94,0.1);
+    border: 2px solid rgba(34,197,94,0.25);
+    border-radius: 50%;
+    animation: popIn 0.4s cubic-bezier(.4,0,.2,1) both;
+    flex-shrink: 0;
+}
+.welcome-check-wrap i { color: #22c55e; font-size: 1.3rem; }
+
+/* ── Cards del dashboard con acento sutil ── */
+.card {
+    background: #0b1525 !important;
+    border-color: rgba(255,255,255,0.07) !important;
+    color: #d0daf0;
+}
+.card-header {
+    background: rgba(255,255,255,0.03) !important;
+    border-bottom-color: rgba(255,255,255,0.07) !important;
+    color: #8a9bb0;
+}
+.card.border-primary { border-color: rgba(55,138,221,0.35) !important; }
+.card.border-success { border-color: rgba(34,197,94,0.35) !important; }
+.card.border-warning { border-color: rgba(245,197,24,0.35) !important; }
+.card.border-danger  { border-color: rgba(230,57,70,0.35) !important; }
+
+/* Número de las tarjetas métricas */
+.card .fs-1.text-primary { color: #378add !important; }
+.card .fs-1.text-success { color: #22c55e !important; }
+.card .fs-1.text-warning { color: #f5c518 !important; }
+.card .fs-1.text-danger  { color: #e63946 !important; }
+.card .text-muted { color: #5a6a82 !important; }
+
+/* ── Franja tricolor en el pie del welcome (decorativa) ── */
+.tricolor-strip {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+.tricolor-strip span {
+    height: 2px;
+    border-radius: 2px;
+    flex: 1;
+    opacity: 0.6;
+}
+
+/* Alerts estilo oscuro */
+.alert-warning { background: rgba(245,197,24,0.08); border-color: rgba(245,197,24,0.25); color: #f5c518; }
+.alert-success { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.25); color: #22c55e; }
+.alert-danger  { background: rgba(230,57,70,0.08); border-color: rgba(230,57,70,0.25); color: #e63946; }
+.alert strong, .alert span { color: inherit; }
+
+/* Tablas */
+.table { color: #c0cee0; }
+.table-hover tbody tr:hover { background: rgba(255,255,255,0.03) !important; color: #d0daf0; }
+.table-light { background: rgba(255,255,255,0.04) !important; color: #8a9bb0 !important; }
+.table-light th { color: #8a9bb0 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ══════════════════════════════════════════════════════════════════════
+   BANNER DE BIENVENIDA
+   ══════════════════════════════════════════════════════════════════════ #}
+<div class="welcome-banner">
+    <div class="deco-ball"></div>
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+
+        {# Izquierda: ícono + saludo #}
+        <div class="d-flex align-items-center gap-3">
+            <div class="welcome-check-wrap">
+                <i class="fas fa-check"></i>
+            </div>
+            <div>
+                {% if session.get('user_role') == 'admin' %}
+                <div class="welcome-role-badge">
+                    <i class="fas fa-crown"></i> Administrador
+                </div>
+                {% else %}
+                <div class="welcome-role-badge">
+                    <i class="fas fa-headset"></i> Recepcionista
+                </div>
+                {% endif %}
+                <div class="welcome-greeting">
+                    ¡Bienvenido, <span>{{ session.get('user_username', 'Usuario') | capitalize }}</span>! 👋
+                </div>
+                <p class="welcome-sub">
+                    {% if session.get('user_role') == 'admin' %}
+                    Tienes acceso completo al sistema. Revisa el resumen del día.
+                    {% else %}
+                    Listo para atender. Aquí tienes el resumen de hoy.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        {# Derecha: reloj #}
+        <div class="text-end d-none d-sm-block">
+            <div class="welcome-clock" id="wb-clock">--:--:--</div>
+            <div class="welcome-date-text" id="wb-date"></div>
+        </div>
+    </div>
+
+    <hr class="welcome-divider">
+
+    {# Accesos rápidos #}
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('payments.create') }}" class="quick-btn">
+            <i class="fas fa-money-bill-wave"></i> Registrar Pago
+        </a>
+        <a href="{{ url_for('clients.create') }}" class="quick-btn">
+            <i class="fas fa-user-plus"></i> Nuevo Cliente
+        </a>
+        <a href="{{ url_for('attendance.index') }}" class="quick-btn">
+            <i class="fas fa-clipboard-check"></i> Asistencias
+        </a>
+        <a href="{{ url_for('clients.index') }}" class="quick-btn">
+            <i class="fas fa-users"></i> Ver Clientes
+        </a>
+        {% if session.get('user_role') == 'admin' %}
+        <a href="{{ url_for('reports.index') }}" class="quick-btn">
+            <i class="fas fa-chart-bar"></i> Reportes
+        </a>
+        <a href="{{ url_for('inventory.index') }}" class="quick-btn">
+            <i class="fas fa-boxes"></i> Inventario
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{# Resto del dashboard original: título y tarjetas #}
+<h4 class="mb-4"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h4>
+
+
+{# ── Tarjetas de resumen ───────────────────────────────────────────── #}
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card text-center border-primary">
+            <div class="card-body">
+                <div class="fs-1 fw-bold text-primary">{{ stats.total_clients }}</div>
+                <div class="text-muted small">Clientes Activos</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center border-success">
+            <div class="card-body">
+                <div class="fs-1 fw-bold text-success">{{ stats.active_memberships }}</div>
+                <div class="text-muted small">Membresías Activas</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="#expiring-section" class="text-decoration-none">
+            <div class="card text-center border-warning {% if stats.expiring_soon > 0 %}bg-warning bg-opacity-10{% endif %}">
+                <div class="card-body">
+                    <div class="fs-1 fw-bold text-warning">{{ stats.expiring_soon }}</div>
+                    <div class="text-muted small">Próximas a Vencer</div>
+                    {% if stats.expiring_soon > 0 %}
+                    <div class="small text-warning fw-semibold">↓ ver lista</div>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="#expired-section" class="text-decoration-none">
+            <div class="card text-center border-danger {% if stats.expired > 0 %}bg-danger bg-opacity-10{% endif %}">
+                <div class="card-body">
+                    <div class="fs-1 fw-bold text-danger">{{ stats.expired }}</div>
+                    <div class="text-muted small">Membresías Vencidas</div>
+                    {% if stats.expired > 0 %}
+                    <div class="small text-danger fw-semibold">↓ ver lista</div>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+{# ── Caja del día: abrir / estado ─────────────────────────────────── #}
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        {% if opening_cash is none %}
+        <div class="alert alert-warning d-flex align-items-center gap-3 mb-0">
+            <i class="fas fa-cash-register fa-2x text-warning"></i>
+            <form method="POST" class="d-flex align-items-center gap-2 flex-wrap mb-0">
+                <strong>Abrir caja del día:</strong>
+                <input type="number" name="opening_cash" class="form-control form-control-sm"
+                       style="width:140px" placeholder="Monto base $" min="0" step="1" required>
+                <input type="text" name="cash_notes" class="form-control form-control-sm"
+                       style="width:200px" placeholder="Observaciones (opcional)">
+                <button type="submit" class="btn btn-warning btn-sm">
+                    <i class="fas fa-lock-open me-1"></i>Abrir Caja
+                </button>
+            </form>
+        </div>
+        {% else %}
+        <div class="alert alert-success d-flex justify-content-between align-items-center mb-0 py-2 flex-wrap gap-2">
+            <span>
+                <i class="fas fa-lock-open me-2 text-success"></i>
+                <strong>Caja base: ${{ '{:,.0f}'.format(opening_cash) }}</strong>
+                &nbsp;|&nbsp;
+                <span class="text-{{ 'success' if net_income >= 0 else 'danger' }} fw-semibold">
+                    Ganancia neta del día: ${{ '{:,.0f}'.format(net_income) }}
+                </span>
+                {% if today_expenses_total > 0 %}
+                &nbsp;|&nbsp;
+                <span class="text-danger fw-semibold">
+                    <i class="fas fa-arrow-down me-1"></i>Egresos hoy: ${{ '{:,.0f}'.format(today_expenses_total) }}
+                </span>
+                {% endif %}
+            </span>
+            <form method="POST" class="d-flex align-items-center gap-2 mb-0">
+                <input type="number" name="opening_cash" class="form-control form-control-sm"
+                       style="width:130px" placeholder="Corregir base" min="0" step="1">
+                <button type="submit" class="btn btn-outline-secondary btn-sm">Actualizar</button>
+            </form>
+            <a href="{{ url_for('reports.pdf_cierre_caja') }}"
+               target="_blank"
+               class="btn btn-sm btn-dark ms-2"
+               title="Descargar PDF con todo lo que entró y salió hoy">
+                <i class="fas fa-file-pdf me-1 text-danger"></i>Cierre de Caja
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    {# ── Caja de hoy ── #}
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">
+                <i class="fas fa-cash-register me-2 text-success"></i>Caja de Hoy
+            </div>
+            <div class="card-body">
+                <div class="fs-4 fw-bold text-success mb-1">${{ '{:,.0f}'.format(stats.today_income) }}</div>
+                <div class="text-muted small mb-3">Solo membresías</div>
+
+                {# Inventario del día #}
+                {% if today_inventory_income > 0 %}
+                <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-3 bg-info bg-opacity-10">
+                    <span class="small"><i class="fas fa-box me-1 text-info"></i>Inventario</span>
+                    <span class="fw-bold text-info small">${{ '{:,.0f}'.format(today_inventory_income) }}</span>
+                </div>
+                {% endif %}
+
+                {# Turno mañana / tarde #}
+                <div class="d-flex gap-2 mb-3">
+                    <div class="flex-fill text-center border rounded p-2">
+                        <div class="small text-muted">🌅 Mañana</div>
+                        <div class="fw-bold text-info">${{ '{:,.0f}'.format(morning_income) }}</div>
+                    </div>
+                    <div class="flex-fill text-center border rounded p-2">
+                        <div class="small text-muted">🌆 Tarde</div>
+                        <div class="fw-bold text-warning">${{ '{:,.0f}'.format(afternoon_income) }}</div>
+                    </div>
+                </div>
+
+                {# ── Desglose por método con sub-turno ── #}
+                {% if shift_breakdown %}
+                <table class="table table-sm mb-0">
+                    <tbody>
+                    {% for method, turnos in shift_breakdown.items() | sort %}
+                    {% set total_method = (turnos.get('mañana', 0) + turnos.get('tarde', 0)) %}
+                    <tr class="border-top">
+                        <td class="ps-0 fw-semibold small" style="padding-bottom:2px">
+                            {% if method == 'efectivo' %}<i class="fas fa-money-bill-wave me-1 text-success"></i>
+                            {% elif method == 'nequi' %}<i class="fas fa-mobile-alt me-1" style="color:#7c3aed"></i>
+                            {% elif method == 'transferencia' %}<i class="fas fa-university me-1 text-info"></i>
+                            {% elif method == 'tarjeta' %}<i class="fas fa-credit-card me-1 text-primary"></i>
+                            {% elif method == 'datafono' %}<i class="fas fa-tablet-alt me-1 text-dark"></i>
+                            {% else %}<i class="fas fa-coins me-1 text-secondary"></i>{% endif %}
+                            {{ method | capitalize }}
+                        </td>
+                        <td class="text-end fw-semibold small" style="padding-bottom:2px">
+                            ${{ '{:,.0f}'.format(total_method) }}
+                        </td>
+                    </tr>
+                    {% if turnos.get('mañana', 0) > 0 %}
+                    <tr>
+                        <td class="ps-3 text-muted" style="font-size:0.78rem;padding-top:1px;padding-bottom:1px">
+                            <i class="fas fa-sun me-1 text-warning" style="font-size:0.7rem"></i>Mañana
+                        </td>
+                        <td class="text-end text-muted" style="font-size:0.78rem;padding-top:1px;padding-bottom:1px">
+                            ${{ '{:,.0f}'.format(turnos.get('mañana', 0)) }}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if turnos.get('tarde', 0) > 0 %}
+                    <tr>
+                        <td class="ps-3 text-muted" style="font-size:0.78rem;padding-top:1px;padding-bottom:2px">
+                            <i class="fas fa-moon me-1 text-primary" style="font-size:0.7rem"></i>Tarde
+                        </td>
+                        <td class="text-end text-muted" style="font-size:0.78rem;padding-top:1px;padding-bottom:2px">
+                            ${{ '{:,.0f}'.format(turnos.get('tarde', 0)) }}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted small mb-0">Sin ingresos de membresías hoy.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# ── Ingresos del mes ── #}
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">
+                <i class="fas fa-chart-line me-2 text-primary"></i>Ingresos del Mes
+            </div>
+            <div class="card-body">
+                <div class="fs-4 fw-bold text-primary mb-1">${{ '{:,.0f}'.format(stats.month_income) }}</div>
+                <div class="text-muted small mb-2">Membresías</div>
+
+                {% if month_inventory_income > 0 %}
+                <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-3 bg-info bg-opacity-10">
+                    <span class="small"><i class="fas fa-box me-1 text-info"></i>Inventario</span>
+                    <span class="fw-bold text-info small">${{ '{:,.0f}'.format(month_inventory_income) }}</span>
+                </div>
+                {% endif %}
+
+                {% if month_expenses_total > 0 %}
+                <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-3 bg-danger bg-opacity-10">
+                    <span class="small"><i class="fas fa-arrow-down me-1 text-danger"></i>Egresos</span>
+                    <span class="fw-bold text-danger small">-${{ '{:,.0f}'.format(month_expenses_total) }}</span>
+                </div>
+                {% endif %}
+
+                {% if month_breakdown %}
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        {% for method, total in month_breakdown.items() | sort %}
+                        <tr>
+                            <td class="text-muted small ps-0">
+                                {% if method == 'efectivo' %}<i class="fas fa-money-bill-wave me-1 text-success"></i>
+                                {% elif method == 'nequi' %}<i class="fas fa-mobile-alt me-1" style="color:#7c3aed"></i>
+                                {% elif method == 'transferencia' %}<i class="fas fa-university me-1 text-info"></i>
+                                {% elif method == 'tarjeta' %}<i class="fas fa-credit-card me-1 text-primary"></i>
+                                {% elif method == 'datafono' %}<i class="fas fa-tablet-alt me-1 text-dark"></i>
+                                {% else %}<i class="fas fa-coins me-1 text-secondary"></i>{% endif %}
+                                {{ method | capitalize }}
+                            </td>
+                            <td class="text-end fw-semibold small">${{ '{:,.0f}'.format(total) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted small mb-0">Sin ingresos este mes.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# ── Ganancias desde 01/Jun/2026 ── #}
+    <div class="col-md-4">
+        <div class="card h-100 border-success">
+            <div class="card-header fw-semibold bg-success bg-opacity-10">
+                <i class="fas fa-trophy me-2 text-success"></i>Ganancias desde 01/Jun/2026
+            </div>
+            <div class="card-body">
+                <div class="fs-4 fw-bold text-success mb-1">${{ '{:,.0f}'.format(stats.june_income) }}</div>
+                <div class="text-muted small mb-2">Membresías</div>
+
+                {% if june_inventory_income > 0 %}
+                <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2 bg-info bg-opacity-10">
+                    <span class="small"><i class="fas fa-box me-1 text-info"></i>Inventario</span>
+                    <span class="fw-bold text-info small">${{ '{:,.0f}'.format(june_inventory_income) }}</span>
+                </div>
+                {% endif %}
+
+                {% if june_expenses_total > 0 %}
+                <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2 bg-danger bg-opacity-10">
+                    <span class="small"><i class="fas fa-arrow-down me-1 text-danger"></i>Egresos</span>
+                    <span class="fw-bold text-danger small">-${{ '{:,.0f}'.format(june_expenses_total) }}</span>
+                </div>
+                {% endif %}
+
+                {% if june_breakdown %}
+                <table class="table table-sm mb-0 mt-2">
+                    <tbody>
+                        {% for method, total in june_breakdown.items() | sort %}
+                        <tr>
+                            <td class="text-muted small ps-0">
+                                {% if method == 'efectivo' %}<i class="fas fa-money-bill-wave me-1 text-success"></i>
+                                {% elif method == 'nequi' %}<i class="fas fa-mobile-alt me-1" style="color:#7c3aed"></i>
+                                {% elif method == 'transferencia' %}<i class="fas fa-university me-1 text-info"></i>
+                                {% elif method == 'tarjeta' %}<i class="fas fa-credit-card me-1 text-primary"></i>
+                                {% elif method == 'datafono' %}<i class="fas fa-tablet-alt me-1 text-dark"></i>
+                                {% else %}<i class="fas fa-coins me-1 text-secondary"></i>{% endif %}
+                                {{ method | capitalize }}
+                            </td>
+                            <td class="text-end fw-semibold small">${{ '{:,.0f}'.format(total) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted small mb-0">Sin pagos registrados desde el 1 de junio.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# ── Ganancias Plan Diario ── #}
+    <div class="col-md-4">
+        <div class="card h-100 border-warning">
+            <div class="card-header fw-semibold bg-warning bg-opacity-10">
+                <i class="fas fa-calendar-day me-2 text-warning"></i>Ganancias Plan Diario
+            </div>
+            <div class="card-body">
+                {# Hoy #}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted small fw-semibold">HOY</span>
+                        <span class="badge bg-warning text-dark">{{ daily_today_count }} pase{% if daily_today_count != 1 %}s{% endif %}</span>
+                    </div>
+                    <div class="fs-4 fw-bold text-warning">${{ '{:,.0f}'.format(daily_today_income) }}</div>
+                    {% if daily_today_count == 0 %}
+                    <div class="text-muted small">Sin pagos diarios hoy.</div>
+                    {% endif %}
+                </div>
+                <hr class="my-2">
+                {# Este mes #}
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted small fw-semibold">ESTE MES</span>
+                        <span class="badge bg-secondary">{{ daily_month_count }} pase{% if daily_month_count != 1 %}s{% endif %}</span>
+                    </div>
+                    <div class="fs-5 fw-bold text-secondary">${{ '{:,.0f}'.format(daily_month_income) }}</div>
+                    {% if daily_month_count == 0 %}
+                    <div class="text-muted small">Sin pagos diarios este mes.</div>
+                    {% endif %}
+                </div>
+                <div class="mt-3 pt-2 border-top">
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Solo cuenta pagos registrados en la fecha correspondiente.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Asistencias + stock bajo ── #}
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column justify-content-between">
+                <div>
+                    <h6 class="text-muted">Asistencias Hoy</h6>
+                    <div class="fs-4 fw-bold text-info">{{ stats.today_attendance }}</div>
+                </div>
+                <div class="mt-3">
+                    <h6 class="text-muted">Stock Bajo</h6>
+                    <div class="fs-4 fw-bold {{ 'text-danger' if stats.low_stock > 0 else 'text-secondary' }}">
+                        {{ stats.low_stock }}
+                        {% if stats.low_stock > 0 %}
+                        <a href="{{ url_for('inventory.alerts') }}" class="btn btn-sm btn-outline-danger ms-2">Ver</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── Membresías vendidas hoy: cuántas y de qué tipo, por turno día/noche ── #}
+<div class="card shadow-sm mb-4" id="memberships-sold-section">
+    <div class="card-header fw-semibold d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span>
+            <i class="fas fa-id-card me-2 text-primary"></i>Membresías Vendidas Hoy
+        </span>
+        <span class="badge bg-primary">{{ total_memberships_sold_today }} en total</span>
+    </div>
+    <div class="card-body p-0">
+        {% if membership_sales_today %}
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Plan</th>
+                    <th class="text-center">🌅 Día</th>
+                    <th class="text-center">🌙 Noche</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plan_name, turnos in membership_sales_today.items() | sort %}
+                {% set dia_count   = turnos.get('mañana', 0) %}
+                {% set noche_count = turnos.get('tarde', 0) %}
+                <tr>
+                    <td class="fw-semibold">{{ plan_name }}</td>
+                    <td class="text-center">{{ dia_count }}</td>
+                    <td class="text-center">{{ noche_count }}</td>
+                    <td class="text-end fw-bold">{{ dia_count + noche_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-light">
+                <tr>
+                    <td class="fw-semibold">Total</td>
+                    <td class="text-center fw-semibold">{{ total_sales_morning }}</td>
+                    <td class="text-center fw-semibold">{{ total_sales_afternoon }}</td>
+                    <td class="text-end fw-bold">{{ total_memberships_sold_today }}</td>
+                </tr>
+            </tfoot>
+        </table>
+        <div class="px-3 py-2 text-muted small border-top">
+            <i class="fas fa-info-circle me-1"></i>Día = turno antes de la 1:00 pm &nbsp;|&nbsp; Noche = turno desde la 1:00 pm
+        </div>
+        {% else %}
+        <div class="p-3 text-muted small">
+            <i class="fas fa-info-circle me-2"></i>Aún no se han vendido membresías hoy.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════════
+   SECCIÓN EGRESOS — solo visible para administrador
+   ══════════════════════════════════════════════════════════════════════ #}
+{% if session.get('user_role') == 'admin' %}
+<div class="card shadow-sm border-danger mb-4" id="expenses-section">
+    <div class="card-header bg-danger bg-opacity-10 fw-semibold text-danger d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span>
+            <i class="fas fa-arrow-circle-down me-2"></i>Egresos del Día
+            {% if today_expenses_list %}
+            <span class="badge bg-danger ms-1">{{ today_expenses_list|length }}</span>
+            {% endif %}
+        </span>
+        <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalEgreso">
+            <i class="fas fa-plus me-1"></i>Registrar Egreso
+        </button>
+    </div>
+    <div class="card-body p-0">
+        {% if today_expenses_list %}
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Descripción</th>
+                    <th>Categoría</th>
+                    <th class="text-end">Monto</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in today_expenses_list %}
+                <tr>
+                    <td>{{ e.description }}</td>
+                    <td class="text-muted small">{{ e.category or '—' }}</td>
+                    <td class="text-end fw-semibold text-danger">${{ '{:,.0f}'.format(e.amount) }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('expenses.delete', expense_id=e.id) }}"
+                              onsubmit="return confirm('¿Eliminar este egreso?')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-light">
+                <tr>
+                    <td colspan="2" class="fw-semibold text-danger">Total egresos hoy</td>
+                    <td class="text-end fw-bold text-danger">${{ '{:,.0f}'.format(today_expenses_total) }}</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+        {% else %}
+        <div class="p-3 text-muted small">
+            <i class="fas fa-check-circle text-success me-2"></i>Sin egresos registrados hoy.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# ── Modal para registrar egreso ──────────────────────────────────── #}
+<div class="modal fade" id="modalEgreso" tabindex="-1" aria-labelledby="modalEgresoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="modalEgresoLabel">
+                    <i class="fas fa-arrow-circle-down me-2"></i>Registrar Egreso
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('expenses.create') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Descripción <span class="text-danger">*</span></label>
+                        <input type="text" name="description" class="form-control"
+                               placeholder="Ej: Pago servicio de agua, compra de implementos..." required>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Monto <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" name="amount" class="form-control"
+                                       placeholder="0" min="1" step="1" required>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Fecha</label>
+                            <input type="date" name="expense_date" class="form-control"
+                                   value="{{ today.strftime('%Y-%m-%d') }}">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label fw-semibold">Categoría</label>
+                        <select name="category" class="form-select">
+                            <option value="">— Sin categoría —</option>
+                            <option value="servicios">Servicios (agua, luz, internet)</option>
+                            <option value="equipos">Equipos y mantenimiento</option>
+                            <option value="salarios">Salarios / nómina</option>
+                            <option value="arriendo">Arriendo</option>
+                            <option value="publicidad">Publicidad</option>
+                            <option value="compras">Compras / insumos</option>
+                            <option value="otros">Otros</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-save me-1"></i>Guardar Egreso
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{# Fin sección egresos (solo admin) #}
+
+{# ── Alertas: próximas a vencer ───────────────────────────────────── #}
+{% if expiring_payments %}
+<div id="expiring-section" class="card shadow-sm border-warning mb-4">
+    <div class="card-header bg-warning bg-opacity-10 fw-semibold text-warning d-flex justify-content-between align-items-center">
+        <span>
+            <i class="fas fa-clock me-2"></i>
+            Membresías por vencer en los próximos 3 días
+            <span class="badge bg-warning text-dark ms-1">{{ expiring_payments|length }}</span>
+        </span>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('reports.excel_expiring') }}" class="btn btn-success btn-sm py-0">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </a>
+            <a href="{{ url_for('reports.pdf_expiring') }}" class="btn btn-danger btn-sm py-0">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Cliente</th>
+                    <th>Plan</th>
+                    <th>Vence</th>
+                    <th>Días</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in expiring_payments %}
+                {% set days_left = (p.end_date - today).days %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('clients.detail', client_id=p.client.id) }}"
+                           class="text-decoration-none fw-semibold">
+                            {{ p.client.full_name }}
+                        </a>
+                    </td>
+                    <td class="text-muted small">{{ p.membership.name }}</td>
+                    <td>{{ p.end_date.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                        <span class="badge {{ 'bg-danger' if days_left == 0 else 'bg-warning text-dark' }}">
+                            {{ 'Vence hoy' if days_left == 0 else days_left ~ ' día' ~ ('s' if days_left != 1) }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('payments.renew', client_id=p.client.id, membership_id=p.membership.id) }}"
+                           class="btn btn-sm btn-success py-0 px-2">
+                            <i class="fas fa-sync-alt me-1"></i>Renovar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{# ── Alertas: ya vencidas ─────────────────────────────────────────── #}
+{% if expired_payments %}
+<div id="expired-section" class="card shadow-sm border-danger mb-4">
+    <div class="card-header bg-danger bg-opacity-10 fw-semibold text-danger d-flex justify-content-between align-items-center">
+        <span>
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Membresías vencidas recientes
+            <span class="badge bg-danger ms-1">{{ stats.expired }}</span>
+            {% if stats.expired > 10 %}
+            <span class="text-muted small ms-2">(mostrando las 10 más recientes)</span>
+            {% endif %}
+        </span>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('reports.excel_expired') }}" class="btn btn-success btn-sm py-0">
+                <i class="fas fa-file-excel me-1"></i>Excel
+            </a>
+            <a href="{{ url_for('reports.pdf_expired') }}" class="btn btn-danger btn-sm py-0">
+                <i class="fas fa-file-pdf me-1"></i>PDF
+            </a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Cliente</th>
+                    <th>Plan</th>
+                    <th>Venció</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in expired_payments %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('clients.detail', client_id=p.client.id) }}"
+                           class="text-decoration-none fw-semibold">
+                            {{ p.client.full_name }}
+                        </a>
+                    </td>
+                    <td class="text-muted small">{{ p.membership.name }}</td>
+                    <td class="text-danger small">{{ p.end_date.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-success py-0 px-2"
+                                data-bs-toggle="modal"
+                                data-bs-target="#renewModal"
+                                data-client-id="{{ p.client.id }}"
+                                data-client-name="{{ p.client.full_name }}"
+                                data-membership-id="{{ p.membership.id }}"
+                                data-membership-name="{{ p.membership.name }}"
+                                data-renew-url="{{ url_for('payments.renew', client_id=p.client.id, membership_id=p.membership.id) }}"
+                                data-change-url="{{ url_for('payments.renew', client_id=p.client.id) }}">
+                            <i class="fas fa-sync-alt me-1"></i>Renovar
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{# ── Modal: Renovar o cambiar plan ───────────────────────────── #}
+<div class="modal fade" id="renewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-sync-alt me-2 text-success"></i>Renovar Membresía
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-1">Cliente: <strong id="modal-client-name"></strong></p>
+        <p class="mb-3">Plan vencido: <span class="badge bg-secondary" id="modal-membership-name"></span></p>
+        <p class="fw-semibold mb-3">¿Qué deseas hacer?</p>
+        <div class="d-grid gap-2">
+          <a id="btn-same-plan" href="#" class="btn btn-success">
+            <i class="fas fa-redo me-2"></i>Continuar con el mismo plan
+          </a>
+          <a id="btn-change-plan" href="#" class="btn btn-outline-primary">
+            <i class="fas fa-exchange-alt me-2"></i>Cambiar de membresía
+          </a>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+    var renewModal = document.getElementById('renewModal');
+    if (!renewModal) return;
+    renewModal.addEventListener('show.bs.modal', function (event) {
+        var btn = event.relatedTarget;
+        document.getElementById('modal-client-name').textContent     = btn.dataset.clientName;
+        document.getElementById('modal-membership-name').textContent = btn.dataset.membershipName;
+        document.getElementById('btn-same-plan').href                = btn.dataset.renewUrl;
+        document.getElementById('btn-change-plan').href              = btn.dataset.changeUrl;
+    });
+})();
+</script>
+
+{% block extra_js %}
+<script>
+// ── Reloj en tiempo real ──────────────────────────────────────────────
+(function() {
+    const DIAS   = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const MESES  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio',
+                    'Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const clockEl = document.getElementById('wb-clock');
+    const dateEl  = document.getElementById('wb-date');
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function tick() {
+        // Colombia (UTC-5, sin horario de verano)
+        const now = new Date(new Date().toLocaleString('en-US', {timeZone: 'America/Bogota'}));
+        const h = pad(now.getHours());
+        const m = pad(now.getMinutes());
+        const s = pad(now.getSeconds());
+        if (clockEl) clockEl.textContent = `${h}:${m}:${s}`;
+        if (dateEl)  dateEl.textContent  = `${DIAS[now.getDay()]}, ${now.getDate()} de ${MESES[now.getMonth()]} ${now.getFullYear()}`;
+    }
+    tick();
+    setInterval(tick, 1000);
+})();
+</script>
+{% endblock %}
+
+{% endblock %}

@@ -1,0 +1,17 @@
+﻿# Datos sensibles / archivos de importacion puntual - NO subir a git
+*.xlsx
+*.xls
+import_lgym.py
+import_products.py
+gym_system/import_lgym.py
+gym_system/import_products.py
+
+# Entorno
+venv/
+.env
+__pycache__/
+*.pyc
+
+# Base de datos local (no subir datos reales de clientes)
+*.db
+gym_system/logs/*.log

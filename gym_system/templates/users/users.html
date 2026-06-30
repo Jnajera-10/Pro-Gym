@@ -1,0 +1,81 @@
+{% extends "layouts/base.html" %}
+{% block title %}Usuarios{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-user-cog me-2"></i>Usuarios del Sistema</h4>
+    <a href="{{ url_for('user.create') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i>Nuevo Usuario
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Nombre</th>
+                    <th>Usuario</th>
+                    <th>Email</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                    <th>Membresía activa</th>
+                    <th>Días restantes</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                {% set dias = u.days_left if u.days_left is defined else None %}
+                <tr>
+                    <td>{{ u.full_name }}</td>
+                    <td><code>{{ u.username }}</code></td>
+                    <td>{{ u.email or '—' }}</td>
+                    <td>
+                        <span class="badge bg-{{ 'danger' if u.role == 'admin' else 'info' if u.role == 'recepcionista' else 'secondary' }}">
+                            {{ u.role }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-{{ 'success' if u.is_active else 'secondary' }}">
+                            {{ 'Activo' if u.is_active else 'Inactivo' }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if u.active_plan %}
+                            {{ u.active_plan }}
+                        {% else %}
+                            <span class="text-muted small">Sin membresía</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.days_left is not none and u.days_left is defined %}
+                            {% if u.days_left < 0 %}
+                                <span class="badge bg-secondary">Vencida</span>
+                            {% elif u.days_left == 0 %}
+                                <span class="badge bg-danger">Vence hoy</span>
+                            {% elif u.days_left <= 3 %}
+                                <span class="badge bg-warning text-dark">{{ u.days_left }} día{{ 's' if u.days_left != 1 }}</span>
+                            {% else %}
+                                <span class="badge bg-success">{{ u.days_left }} días</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('user.deactivate', user_id=u.id) }}"
+                              class="d-inline"
+                              onsubmit="return confirm('¿Desactivar usuario {{ u.username }}?')">
+                            <button class="btn btn-sm btn-outline-danger" {{ 'disabled' if u.role == 'admin' }}>
+                                Desactivar
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

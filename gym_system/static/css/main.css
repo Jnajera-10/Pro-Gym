@@ -1,0 +1,78 @@
+:root {
+    --gym-primary: #e63946;
+    --gym-dark: #1d1d2e;
+    --gym-accent: #f4a261;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f8f9fa;
+}
+
+/* ── SIDEBAR ───────────────────────────────────────── */
+.sidebar {
+    min-height: 100vh;
+    width: 220px;
+    min-width: 220px;
+    flex-shrink: 0;
+}
+
+.sidebar .nav-link {
+    padding: 10px 20px;
+    border-radius: 6px;
+    margin: 2px 8px;
+    transition: background 0.2s;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── MÓVIL: sidebar como drawer lateral ───────────── */
+@media (max-width: 767.98px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1050;
+        width: 260px;
+        min-width: 260px;
+        min-height: 100dvh;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        overflow-y: auto;
+    }
+
+    .sidebar.sidebar-open {
+        transform: translateX(0);
+    }
+
+    /* Overlay oscuro detrás del sidebar */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1040;
+    }
+
+    .sidebar-overlay.active {
+        display: block;
+    }
+}
+
+/* ── CARDS ─────────────────────────────────────────── */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+}
+
+.badge { font-size: 0.8em; }
+
+.table th {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}

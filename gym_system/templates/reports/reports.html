@@ -1,0 +1,244 @@
+{% extends "layouts/base.html" %}
+{% block title %}Reportes{% endblock %}
+{% block content %}
+<h4 class="mb-4"><i class="fas fa-chart-bar me-2"></i>Reportes</h4>
+
+{# ── Selector de período ──────────────────────────────────────────── #}
+<div class="card shadow-sm mb-4">
+    <div class="card-body py-2">
+        <form method="GET" class="d-flex align-items-center gap-3 flex-wrap">
+            <span class="fw-semibold text-muted small">Período:</span>
+            <select name="mes" class="form-select form-select-sm" style="width:auto">
+                {% for m_num, m_name in [
+                    (1,'Enero'),(2,'Febrero'),(3,'Marzo'),(4,'Abril'),
+                    (5,'Mayo'),(6,'Junio'),(7,'Julio'),(8,'Agosto'),
+                    (9,'Septiembre'),(10,'Octubre'),(11,'Noviembre'),(12,'Diciembre')
+                ] %}
+                <option value="{{ m_num }}" {% if m_num == mes %}selected{% endif %}>{{ m_name }}</option>
+                {% endfor %}
+            </select>
+            <select name="anio" class="form-select form-select-sm" style="width:auto">
+                {% for y in range(2024, today.year + 2) %}
+                <option value="{{ y }}" {% if y == anio %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-primary btn-sm" type="submit">
+                <i class="fas fa-filter me-1"></i>Aplicar
+            </button>
+            <span class="text-muted small ms-auto">
+                {{ start.strftime('%d/%m/%Y') }} — {{ end.strftime('%d/%m/%Y') }}
+            </span>
+        </form>
+    </div>
+</div>
+
+{# ── Resumen del período ──────────────────────────────────────────── #}
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-success h-100">
+            <div class="card-body">
+                <h6 class="text-muted">Ingresos del período</h6>
+                <div class="fs-3 fw-bold text-success">${{ '{:,.0f}'.format(income_period) }}</div>
+                <div class="mt-2">
+                    {% for method, total in income_by_method.items() | sort %}
+                    <div class="d-flex justify-content-between small text-muted">
+                        <span>
+                            {% if method == 'efectivo' %}<i class="fas fa-money-bill-wave me-1 text-success"></i>
+                            {% elif method == 'nequi' %}<i class="fas fa-mobile-alt me-1" style="color:#7c3aed"></i>
+                            {% elif method == 'transferencia' %}<i class="fas fa-university me-1 text-info"></i>
+                            {% elif method == 'tarjeta' %}<i class="fas fa-credit-card me-1 text-primary"></i>
+                            {% else %}<i class="fas fa-coins me-1 text-secondary"></i>{% endif %}
+                            {{ method | capitalize }}
+                        </span>
+                        <span class="fw-semibold">${{ '{:,.0f}'.format(total) }}</span>
+                    </div>
+                    {% else %}
+                    <span class="text-muted small">Sin ingresos en este período.</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-primary h-100">
+            <div class="card-body">
+                <h6 class="text-muted">Pagos registrados</h6>
+                <div class="fs-3 fw-bold text-primary">{{ payments_period|length }}</div>
+                <p class="text-muted small mb-0 mt-2">en el período seleccionado</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-info h-100">
+            <div class="card-body">
+                <h6 class="text-muted">Clientes activos</h6>
+                <div class="fs-3 fw-bold text-info">{{ clients_active }}</div>
+                <p class="text-muted small mb-0 mt-2">total en el sistema</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── Cards de exportación ─────────────────────────────────────────── #}
+<div class="row g-3 mb-4">
+
+    {# Clientes activos #}
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0"><i class="fas fa-users text-primary me-2"></i>Clientes Activos</h6>
+                    <small class="text-muted">{{ clients_active }} registros — datos completos</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('reports.excel_clients') }}"
+                       class="btn btn-success btn-sm">
+                        <i class="fas fa-file-excel me-1"></i>Excel
+                    </a>
+                    <a href="{{ url_for('reports.pdf_clients') }}"
+                       class="btn btn-danger btn-sm">
+                        <i class="fas fa-file-pdf me-1"></i>PDF
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Ingresos del período #}
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0"><i class="fas fa-money-bill text-success me-2"></i>Ingresos del Período</h6>
+                    <small class="text-muted">
+                        {{ payments_period|length }} pagos —
+                        {{ start.strftime('%b %Y') }}
+                    </small>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('reports.excel_payments', mes=mes, anio=anio) }}"
+                       class="btn btn-success btn-sm">
+                        <i class="fas fa-file-excel me-1"></i>Excel
+                    </a>
+                    <a href="{{ url_for('reports.pdf_payments', mes=mes, anio=anio) }}"
+                       class="btn btn-danger btn-sm">
+                        <i class="fas fa-file-pdf me-1"></i>PDF
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Ventas del período #}
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0"><i class="fas fa-shopping-cart text-warning me-2"></i>Ventas del Período</h6>
+                    <small class="text-muted">Ventas de productos — {{ start.strftime('%b %Y') }}</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('reports.excel_sales', mes=mes, anio=anio) }}"
+                       class="btn btn-success btn-sm">
+                        <i class="fas fa-file-excel me-1"></i>Excel
+                    </a>
+                    <a href="{{ url_for('reports.pdf_sales', mes=mes, anio=anio) }}"
+                       class="btn btn-danger btn-sm">
+                        <i class="fas fa-file-pdf me-1"></i>PDF
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Membresías por vencer #}
+    <div class="col-md-6">
+        <div class="card shadow-sm border-warning h-100">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0">
+                        <i class="fas fa-clock text-warning me-2"></i>Por Vencer (≤3 días)
+                    </h6>
+                    <small class="text-muted">
+                        {{ expiring|length }} membresía{{ 's' if expiring|length != 1 }} —
+                        incluye teléfono y email
+                    </small>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('reports.excel_expiring') }}"
+                       class="btn btn-success btn-sm">
+                        <i class="fas fa-file-excel me-1"></i>Excel
+                    </a>
+                    <a href="{{ url_for('reports.pdf_expiring') }}"
+                       class="btn btn-danger btn-sm">
+                        <i class="fas fa-file-pdf me-1"></i>PDF
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Membresías vencidas #}
+    <div class="col-md-6">
+        <div class="card shadow-sm border-danger h-100">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0">
+                        <i class="fas fa-exclamation-triangle text-danger me-2"></i>Membresías Vencidas
+                    </h6>
+                    <small class="text-muted">
+                        {{ expired|length }} en total —
+                        incluye teléfono y email para contactar
+                    </small>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('reports.excel_expired') }}"
+                       class="btn btn-success btn-sm">
+                        <i class="fas fa-file-excel me-1"></i>Excel
+                    </a>
+                    <a href="{{ url_for('reports.pdf_expired') }}"
+                       class="btn btn-danger btn-sm">
+                        <i class="fas fa-file-pdf me-1"></i>PDF
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{# ── Vista previa: vencimientos próximos ─────────────────────────── #}
+{% if expiring %}
+<div class="card shadow-sm border-warning mb-3">
+    <div class="card-header bg-warning bg-opacity-10 fw-semibold text-warning py-2">
+        <i class="fas fa-clock me-2"></i>
+        Vista previa — Por vencer en 3 días
+        <span class="badge bg-warning text-dark ms-1">{{ expiring|length }}</span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr><th>Cliente</th><th>Teléfono</th><th>Plan</th><th>Vence</th><th>Días</th></tr>
+            </thead>
+            <tbody>
+                {% for p in expiring %}
+                {% set dias = (p.end_date - today).days %}
+                <tr>
+                    <td class="fw-semibold">{{ p.client.full_name if p.client else '—' }}</td>
+                    <td>{{ p.client.phone if p.client else '—' }}</td>
+                    <td class="text-muted small">{{ p.membership.name if p.membership else '—' }}</td>
+                    <td>{{ p.end_date.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                        <span class="badge {{ 'bg-danger' if dias == 0 else 'bg-warning text-dark' }}">
+                            {{ 'Hoy' if dias == 0 else dias ~ 'd' }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

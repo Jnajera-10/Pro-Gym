@@ -1,0 +1,258 @@
+{% extends "layouts/base.html" %}
+{% block title %}Renovar Membresía{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{{ url_for('payments.index') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+    <h4 class="mb-0"><i class="fas fa-sync-alt me-2 text-success"></i>Renovar Membresía</h4>
+</div>
+
+{% if preselect_client %}
+<div class="alert alert-success border-0 py-2 mb-4">
+    <i class="fas fa-user-check me-2"></i>
+    Renovando para <strong>{{ preselect_client.full_name }}</strong>
+    {% if preselect_membership %}
+     — Plan <strong>{{ preselect_membership.name }}</strong>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="POST" id="renew_form">
+            <div class="row g-3">
+
+                {# ── Cliente ── #}
+                <div class="col-md-6">
+                    <label class="form-label">Cliente Titular *</label>
+                    <select name="client_id" id="client_id" class="form-select" required>
+                        <option value="">Selecciona cliente…</option>
+                        {% for c in clients %}
+                        <option value="{{ c.id }}"
+                            {% if preselect_client and c.id == preselect_client.id %}selected{% endif %}>
+                            {{ c.full_name }} — {{ c.document_number }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# ── Membresía ── #}
+                <div class="col-md-6">
+                    <label class="form-label">Membresía *</label>
+                    <select name="membership_id" id="membership_id" class="form-select" required>
+                        <option value="">Selecciona membresía…</option>
+                        {% for m in memberships %}
+                        <option value="{{ m.id }}"
+                            data-price="{{ m.price }}"
+                            data-type="{{ m.membership_type }}"
+                            data-duration="{{ m.duration_days }}"
+                            data-student="{{ 'true' if m.requires_student else 'false' }}"
+                            {% if preselect_membership and m.id == preselect_membership.id %}selected{% endif %}>
+                            {{ m.name }} — ${{ '{:,.0f}'.format(m.price) }}
+                            {% if m.is_couple_plan %} 👫{% endif %}
+                            {% if m.is_student_plan %} 🎓{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# ── Plan Pareja: segundo cliente ── #}
+                <div class="col-md-6" id="partner_section" style="display:none">
+                    <label class="form-label">
+                        Cliente Pareja *
+                        <span class="text-muted small">(Plan Pareja: obligatorio)</span>
+                    </label>
+                    <select name="partner_client_id" id="partner_client_id" class="form-select">
+                        <option value="">Selecciona el segundo cliente…</option>
+                        {% for c in clients %}
+                        <option value="{{ c.id }}">{{ c.full_name }} — {{ c.document_number }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# ── Plan Estudiantil ── #}
+                <div class="col-md-6" id="student_section" style="display:none">
+                    <div class="card border-warning h-100">
+                        <div class="card-body py-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_student" id="is_student">
+                                <label class="form-check-label fw-semibold text-warning" for="is_student">
+                                    <i class="fas fa-graduation-cap me-1"></i>
+                                    Confirmo que el cliente es bachiller (Plan Estudiantil)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# ── Fecha inicio (precargada con la fecha sugerida) ── #}
+                <div class="col-md-4">
+                    <label class="form-label">Fecha de Inicio *</label>
+                    <input type="date" name="start_date" id="start_date" class="form-control" required
+                           value="{{ suggested_start.strftime('%Y-%m-%d') }}">
+                    <div class="form-text text-success">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Fecha sugerida: continuación del plan anterior
+                    </div>
+                </div>
+
+                {# ── Fecha de Pago ── #}
+                <div class="col-md-4">
+                    <label class="form-label">
+                        Fecha de Pago *
+                        <span class="text-muted small" data-bs-toggle="tooltip"
+                              title="Cambia esta fecha si el pago corresponde a otro mes. Las ganancias se registran en el período correcto.">ⓘ</span>
+                    </label>
+                    <input type="date" name="payment_date" id="payment_date"
+                           class="form-control" required value="{{ today.strftime('%Y-%m-%d') if today else '' }}">
+                    <div id="payment_date_warning" class="form-text text-warning fw-semibold d-none">
+                        ⚠️ La fecha de pago es diferente a hoy. El ingreso se contabilizará en ese mes.
+                    </div>
+                </div>
+
+                {# ── Preview de vencimiento ── #}
+                <div class="col-md-4">
+                    <label class="form-label">Vence el (calculado)</label>
+                    <div id="end_preview" class="form-control bg-light fw-bold text-success">—</div>
+                </div>
+
+                {# ── Monto ── #}
+                <div class="col-md-4">
+                    <label class="form-label">Monto *</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="amount" id="amount" class="form-control"
+                               step="0.01" min="0" required
+                               value="{{ preselect_membership.price if preselect_membership else '' }}">
+                    </div>
+                </div>
+
+                {# ── Método de pago ── #}
+                <div class="col-md-6">
+                    <label class="form-label">Método de Pago</label>
+                    <select name="payment_method" class="form-select">
+                        <option value="efectivo">Efectivo</option>
+                        <option value="nequi">Nequi</option>
+                        <option value="transferencia">Transferencia</option>
+                        <option value="datafono">Datáfono</option>
+                        <option value="tarjeta">Tarjeta</option>
+                    </select>
+                </div>
+
+                {# ── Notas ── #}
+                <div class="col-md-6">
+                    <label class="form-label">Observaciones</label>
+                    <input type="text" name="notes" class="form-control"
+                           placeholder="Renovación — opcional">
+                </div>
+
+                <div class="col-12 d-flex gap-2 justify-content-end">
+                    <a href="{{ url_for('payments.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-success px-4">
+                        <i class="fas fa-sync-alt me-1"></i>Confirmar Renovación
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const membershipSel = document.getElementById('membership_id');
+const startInput    = document.getElementById('start_date');
+const paymentDateInput = document.getElementById('payment_date');
+const paymentDateWarning = document.getElementById('payment_date_warning');
+
+function checkPaymentDateWarning() {
+    const today = new Date().toISOString().split('T')[0];
+    if (paymentDateInput && paymentDateWarning) {
+        if (paymentDateInput.value && paymentDateInput.value !== today) {
+            paymentDateWarning.classList.remove('d-none');
+        } else {
+            paymentDateWarning.classList.add('d-none');
+        }
+    }
+}
+if (paymentDateInput) {
+    paymentDateInput.addEventListener('change', checkPaymentDateWarning);
+    checkPaymentDateWarning();
+}
+const amountInput   = document.getElementById('amount');
+const endPreview    = document.getElementById('end_preview');
+const partnerSec    = document.getElementById('partner_section');
+const partnerSel    = document.getElementById('partner_client_id');
+const studentSec    = document.getElementById('student_section');
+const studentChk    = document.getElementById('is_student');
+
+function addDays(dateStr, days) {
+    const d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() + days);
+    return d.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function updateUI() {
+    const opt = membershipSel.options[membershipSel.selectedIndex];
+    if (!opt || !opt.value) {
+        partnerSec.style.display = 'none';
+        studentSec.style.display = 'none';
+        endPreview.textContent   = '—';
+        partnerSel.required = false;
+        studentChk.required = false;
+        return;
+    }
+
+    const mtype    = opt.dataset.type || '';
+    const isCouple  = mtype === 'pareja';
+    const isStudent = mtype === 'estudiantil';
+    const price     = opt.dataset.price;
+    const duration  = parseInt(opt.dataset.duration || '0');
+
+    if (price) amountInput.value = price;
+
+    partnerSec.style.display = isCouple ? '' : 'none';
+    partnerSel.required      = isCouple;
+
+    studentSec.style.display = isStudent ? '' : 'none';
+    studentChk.required      = isStudent;
+
+    if (duration > 0 && startInput.value) {
+        endPreview.textContent = addDays(startInput.value, duration - 1);
+        endPreview.className   = 'form-control bg-light fw-bold text-success';
+    } else {
+        endPreview.textContent = '—';
+    }
+}
+
+membershipSel.addEventListener('change', updateUI);
+startInput.addEventListener('change', updateUI);
+
+document.getElementById('renew_form').addEventListener('submit', function(e) {
+    const opt = membershipSel.options[membershipSel.selectedIndex];
+    if (!opt || !opt.value) return;
+    const mtype = opt.dataset.type || '';
+    if (mtype === 'pareja') {
+        const titularId = document.getElementById('client_id').value;
+        const partId    = partnerSel.value;
+        if (!partId) { e.preventDefault(); alert('El Plan Pareja requiere el segundo cliente.'); return; }
+        if (titularId === partId) { e.preventDefault(); alert('Los dos clientes deben ser diferentes.'); return; }
+    }
+    if (mtype === 'estudiantil' && !studentChk.checked) {
+        e.preventDefault();
+        alert('Debes confirmar que el cliente es bachiller.');
+        return;
+    }
+
+    // ── Anti-doble-clic: deshabilitar botón al enviar ─────────────
+    const submitBtn = document.querySelector('#renew_form button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Registrando...';
+    }
+});
+
+updateUI();
+</script>
+{% endblock %}

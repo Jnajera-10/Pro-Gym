@@ -1,0 +1,25 @@
+{% extends "layouts/base.html" %}
+{% block title %}Respaldos{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-database me-2"></i>Respaldo del Sistema</h4>
+</div>
+<div class="card shadow-sm">
+    <div class="card-body">
+        <p class="text-muted">
+            Genera un archivo JSON con todos los datos del sistema
+            (clientes, pagos, membresías, ventas, inventario, etc.)
+            y descárgalo a tu computador. Guárdalo en un lugar seguro
+            (ej. una carpeta de respaldos en tu PC o en la nube).
+        </p>
+        <p class="text-muted">
+            <strong>Importante:</strong> el respaldo se genera y se descarga
+            directamente, no se guarda en el servidor. Hazlo periódicamente
+            (por ejemplo, una vez por semana).
+        </p>
+        <a href="{{ url_for('backup.download') }}" class="btn btn-primary">
+            <i class="fas fa-download me-1"></i>Descargar Respaldo Ahora
+        </a>
+    </div>
+</div>
+{% endblock %}

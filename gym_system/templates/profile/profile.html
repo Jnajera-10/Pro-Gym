@@ -1,0 +1,157 @@
+{% extends "layouts/base.html" %}
+{% block title %}Mi Perfil{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+    <h4 class="mb-0"><i class="fas fa-user-circle me-2"></i>Mi Perfil</h4>
+    <span class="badge bg-{{ 'danger' if user.role == 'admin' else 'info' }}">{{ user.role }}</span>
+</div>
+
+<div class="row g-4">
+
+    {# ── Datos personales ──────────────────────────────────────────── #}
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">
+                <i class="fas fa-id-card me-2"></i>Datos del Usuario
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="action" value="update_info">
+
+                    <div class="mb-3">
+                        <label class="form-label">Nombre completo</label>
+                        <input type="text" name="full_name" class="form-control"
+                               value="{{ user.full_name }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control"
+                               value="{{ user.email or '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Usuario (no editable)</label>
+                        <input type="text" class="form-control bg-light" value="{{ user.username }}" disabled>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Último acceso</label>
+                        <input type="text" class="form-control bg-light"
+                               value="{{ user.last_login.strftime('%d/%m/%Y %H:%M') if user.last_login else 'Nunca' }}"
+                               disabled>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-save me-1"></i>Guardar Cambios
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {# ── Cambio de contraseña ───────────────────────────────────────── #}
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">
+                <i class="fas fa-lock me-2"></i>Cambiar Contraseña
+            </div>
+            <div class="card-body">
+                <form method="POST" id="pw_form">
+                    <input type="hidden" name="action" value="change_password">
+
+                    <div class="mb-3">
+                        <label class="form-label">Contraseña actual *</label>
+                        <div class="input-group">
+                            <input type="password" name="current_password" id="cur_pw"
+                                   class="form-control" required autocomplete="current-password">
+                            <button type="button" class="btn btn-outline-secondary toggle-pw"
+                                    data-target="cur_pw">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nueva contraseña *</label>
+                        <div class="input-group">
+                            <input type="password" name="new_password" id="new_pw"
+                                   class="form-control" required minlength="6"
+                                   autocomplete="new-password"
+                                   oninput="checkMatch()">
+                            <button type="button" class="btn btn-outline-secondary toggle-pw"
+                                    data-target="new_pw">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">Mínimo 6 caracteres.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Confirmar nueva contraseña *</label>
+                        <div class="input-group">
+                            <input type="password" name="confirm_password" id="conf_pw"
+                                   class="form-control" required
+                                   autocomplete="new-password"
+                                   oninput="checkMatch()">
+                            <button type="button" class="btn btn-outline-secondary toggle-pw"
+                                    data-target="conf_pw">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div id="pw_match_msg" class="form-text"></div>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="fas fa-key me-1"></i>Actualizar Contraseña
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Toggle visibilidad de contraseña ──
+document.querySelectorAll('.toggle-pw').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const input = document.getElementById(this.dataset.target);
+        if (input.type === 'password') {
+            input.type = 'text';
+            this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        } else {
+            input.type = 'password';
+            this.innerHTML = '<i class="fas fa-eye"></i>';
+        }
+    });
+});
+
+// ── Validación de coincidencia en tiempo real ──
+function checkMatch() {
+    const newPw  = document.getElementById('new_pw').value;
+    const confPw = document.getElementById('conf_pw').value;
+    const msg    = document.getElementById('pw_match_msg');
+    if (!confPw) { msg.textContent = ''; return; }
+    if (newPw === confPw) {
+        msg.textContent  = '✓ Las contraseñas coinciden';
+        msg.style.color  = 'green';
+    } else {
+        msg.textContent  = '✗ Las contraseñas no coinciden';
+        msg.style.color  = 'red';
+    }
+}
+
+// ── Prevenir envío si no coinciden ──
+document.getElementById('pw_form').addEventListener('submit', function(e) {
+    const newPw  = document.getElementById('new_pw').value;
+    const confPw = document.getElementById('conf_pw').value;
+    if (newPw !== confPw) {
+        e.preventDefault();
+        alert('Las contraseñas no coinciden.');
+    }
+});
+</script>
+{% endblock %}
