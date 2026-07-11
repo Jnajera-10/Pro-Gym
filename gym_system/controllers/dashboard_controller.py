@@ -18,16 +18,16 @@ BOGOTA = pytz.timezone('America/Bogota')
 class DashboardController:
     @staticmethod
     def index():
+        from flask import session
+
         now   = datetime.now(BOGOTA)
         today = now.date()
 
-        # Inicio del mes actual (reemplaza el antiguo JUNE_START hardcodeado).
-        # Se recalcula cada vez, así las cifras "desde inicio de mes" se
-        # reinician automáticamente cada mes sin tocar el código.
-        JUNE_START = date_type(today.year, today.month, 1)
-
-        # ── Abrir caja (POST) ─────────────────────────────────────────
+        # ── Abrir caja (POST) — solo admin puede hacerlo, igual que ve la caja ──
         if request.method == 'POST':
+            if session.get('user_role') != 'admin':
+                flash('⛔ Solo el administrador puede abrir la caja.', 'danger')
+                return redirect(url_for('dashboard.index'))
             try:
                 opening = float(request.form.get('opening_cash', 0))
                 cr = CashRegister.query.filter_by(date=today).first()
@@ -44,6 +44,17 @@ class DashboardController:
                 db.session.rollback()
                 flash(f'Error al abrir caja: {e}', 'danger')
             return redirect(url_for('dashboard.index'))
+
+        # ── Usuarios que no son admin: solo ven el banner de bienvenida.
+        # Nos ahorramos todas las consultas de estadísticas/caja/reportes,
+        # que además el template ya no renderiza para estos roles. ──
+        if session.get('user_role') != 'admin':
+            return render_template('dashboard/dashboard.html', today=today)
+
+        # Inicio del mes actual (reemplaza el antiguo JUNE_START hardcodeado).
+        # Se recalcula cada vez, así las cifras "desde inicio de mes" se
+        # reinician automáticamente cada mes sin tocar el código.
+        JUNE_START = date_type(today.year, today.month, 1)
 
         # Inicio del día con timezone explícita
         start_of_day = BOGOTA.localize(datetime(today.year, today.month, today.day, 0, 0, 0))
