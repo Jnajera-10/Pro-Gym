@@ -264,8 +264,6 @@
     </div>
 </div>
 
-{% if session.get('user_role') == 'admin' %}
-
 {# Resto del dashboard original: título y tarjetas #}
 <h4 class="mb-4"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h4>
 
@@ -943,11 +941,6 @@
     });
 })();
 </script>
-
-{% else %}
-{# Usuarios que no son admin (recepcionista, entrenador) solo ven el
-   banner de bienvenida de arriba — sin cifras, cajas ni reportes. #}
-{% endif %}
 
 {% block extra_js %}
 <script>
