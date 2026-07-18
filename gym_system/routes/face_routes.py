@@ -97,6 +97,9 @@ def lookup_face():
         'client_name': client.full_name,
         'distance': round(distance, 3) if distance is not None else None,
     })
+
+
+@face_bp.route('/api/face/verify', methods=['POST'])
 @login_required
 def verify_face():
     """
