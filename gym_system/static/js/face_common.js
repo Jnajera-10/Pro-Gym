@@ -32,11 +32,21 @@ async function loadFaceModels() {
     _modelsLoaded = true;
 }
 
-async function startCamera(videoEl) {
-    const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 480, height: 360, facingMode: 'user' },
-        audio: false,
-    });
+async function startCamera(videoEl, facingMode = 'environment') {
+    let stream;
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 480, height: 360, facingMode: { exact: facingMode } },
+            audio: false,
+        });
+    } catch (err) {
+        // Si el celular no tiene esa cámara exacta (ej. no tiene trasera separada),
+        // reintenta sin "exact" para que el navegador use la que tenga disponible.
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 480, height: 360, facingMode },
+            audio: false,
+        });
+    }
     videoEl.srcObject = stream;
     await videoEl.play();
     return stream;

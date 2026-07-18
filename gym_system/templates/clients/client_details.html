@@ -224,6 +224,12 @@
                 <video id="faceVideo" width="360" height="270" muted playsinline
                        style="border-radius:8px;background:#111;"></video>
 
+                <div class="mt-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnSwitchFaceCam">
+                        <i class="fas fa-sync-alt me-1"></i>Cambiar cámara
+                    </button>
+                </div>
+
                 <div class="form-check mt-3 text-start">
                     <input class="form-check-input" type="checkbox" id="consentCheck"
                            {% if client.biometric_consent %}checked disabled{% endif %}>
@@ -253,6 +259,7 @@
 const CLIENT_ID = {{ client.id }};
 let faceStream = null;
 let modelsReady = false;
+let faceCurrentFacing = 'user'; // frontal por defecto: normalmente el empleado le toma la foto al cliente de frente
 
 async function openFaceModal() {
     const modalEl = document.getElementById('faceModal');
@@ -271,7 +278,7 @@ async function openFaceModal() {
             modelsReady = true;
         }
         statusEl.innerHTML = '<i class="fas fa-video me-1"></i>Iniciando cámara…';
-        faceStream = await startCamera(video);
+        faceStream = await startCamera(video, faceCurrentFacing);
         statusEl.innerHTML = '<i class="fas fa-info-circle me-1"></i>Ubica el rostro dentro del cuadro y pulsa "Capturar".';
         btnCapture.disabled = false;
     } catch (err) {
@@ -279,6 +286,21 @@ async function openFaceModal() {
         statusEl.innerHTML = '<i class="fas fa-exclamation-triangle text-danger me-1"></i>No se pudo acceder a la cámara.';
     }
 }
+
+document.getElementById('btnSwitchFaceCam').addEventListener('click', async () => {
+    faceCurrentFacing = faceCurrentFacing === 'user' ? 'environment' : 'user';
+    const video    = document.getElementById('faceVideo');
+    const statusEl = document.getElementById('faceStatus');
+    stopCamera(faceStream);
+    statusEl.innerHTML = '<i class="fas fa-video me-1"></i>Cambiando de cámara…';
+    try {
+        faceStream = await startCamera(video, faceCurrentFacing);
+        statusEl.innerHTML = '<i class="fas fa-info-circle me-1"></i>Ubica el rostro dentro del cuadro y pulsa "Capturar".';
+    } catch (err) {
+        console.error(err);
+        statusEl.innerHTML = '<i class="fas fa-exclamation-triangle text-danger me-1"></i>Esta cámara no está disponible en tu dispositivo.';
+    }
+});
 
 document.getElementById('faceModal').addEventListener('hidden.bs.modal', () => {
     stopCamera(faceStream);
