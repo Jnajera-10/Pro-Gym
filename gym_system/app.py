@@ -29,12 +29,13 @@ def create_app():
     from routes.expense_routes import expense_bp
     from routes.delete_request_routes import dr_bp
     from routes.zkbio_routes import zkbio_bp
+    from routes.face_routes import face_bp
  
     for bp in [auth_bp, user_bp, client_bp, membership_bp, payment_bp,
                attendance_bp, inventory_bp, sales_bp, dashboard_bp,
                reports_bp, notification_bp, settings_bp, backup_bp, audit_bp,
                health_bp, email_test_bp, profile_bp, expense_bp, dr_bp,
-               zkbio_bp]:
+               zkbio_bp, face_bp]:
         app.register_blueprint(bp)
  
     @app.before_request
@@ -65,6 +66,20 @@ def create_app():
  
     with app.app_context():
         db.create_all()
+ 
+        # -- Migracion automatica: columnas de reconocimiento facial --
+        # Idempotente (IF NOT EXISTS); corre cada vez que Render arranca la app,
+        # asi no hace falta Shell ni comandos manuales.
+        try:
+            from sqlalchemy import text as _text
+            with db.engine.connect() as _conn:
+                _conn.execute(_text("ALTER TABLE clients ADD COLUMN IF NOT EXISTS face_embedding TEXT"))
+                _conn.execute(_text("ALTER TABLE clients ADD COLUMN IF NOT EXISTS face_registered_at TIMESTAMP"))
+                _conn.execute(_text("ALTER TABLE clients ADD COLUMN IF NOT EXISTS biometric_consent BOOLEAN DEFAULT FALSE"))
+                _conn.execute(_text("ALTER TABLE clients ADD COLUMN IF NOT EXISTS biometric_consent_at TIMESTAMP"))
+                _conn.commit()
+        except Exception:
+            pass
  
         try:
             from database.models.user import User
