@@ -71,7 +71,32 @@ def clear_face(client_id):
     return jsonify({'ok': True, 'message': f'Rostro eliminado de {client.full_name}.'})
 
 
-@face_bp.route('/api/face/verify', methods=['POST'])
+@face_bp.route('/api/face/lookup', methods=['POST'])
+@login_required
+def lookup_face():
+    """
+    Igual que verify_face, pero solo identifica al cliente — no registra
+    asistencia ni valida membresía. Se usa en el botón "Consultar Cliente"
+    del dashboard para llevar directo a la ficha del cliente.
+    """
+    data = request.get_json(silent=True) or {}
+    embedding = data.get('embedding')
+
+    if not embedding or not isinstance(embedding, list):
+        return jsonify({'ok': False, 'status': 'error', 'message': 'Embedding inválido.'}), 400
+
+    client, distance = FaceService.find_match(embedding)
+
+    if not client:
+        return jsonify({'ok': True, 'status': 'not_found', 'message': 'Rostro no reconocido.'})
+
+    return jsonify({
+        'ok': True,
+        'status': 'found',
+        'client_id': client.id,
+        'client_name': client.full_name,
+        'distance': round(distance, 3) if distance is not None else None,
+    })
 @login_required
 def verify_face():
     """
